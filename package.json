@@ -1,0 +1,25 @@
+{
+  "name": "ai-native-forms",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.26.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "dev": "turbo run dev",
+    "format": "biome format --write .",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "tsdown": "0.22.14",
+    "turbo": "2.10.12",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

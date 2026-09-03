@@ -1,0 +1,5 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+useNodeVersion: 24.20.0
