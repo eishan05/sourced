@@ -12,6 +12,8 @@ import {
   hiddenReason,
   highlightsForSource,
   isVisible,
+  type Normalization,
+  normalizeValue,
   type ProvenanceKind,
   policyOf,
   reviewCursorFieldId,
@@ -73,6 +75,8 @@ export interface FieldInputProps {
   value: string;
   ref(element: HTMLElement | null): void;
   onChange(eventOrValue: unknown): void;
+  onFocus(): void;
+  onBlur(): void;
 }
 
 export interface FieldApi {
@@ -81,7 +85,11 @@ export interface FieldApi {
   visible: boolean;
   status: FieldStatus;
   value: FieldValue;
+  draft: boolean;
+  normalization: Normalization | null;
   setValue(value: FieldValue): void;
+  normalize(): void;
+  revertNormalization(): void;
   accept(): void;
   revert(): void;
   dismiss(): void;
@@ -242,8 +250,14 @@ function eventValue(
         target: { value: string; checked?: boolean };
       }
     ).target;
-    if (definition.type === "number") return Number(target.value);
     if (definition.type === "boolean") return Boolean(target.checked);
+    if (definition.type === "number") {
+      const raw = target.value;
+      const trimmed = raw.trim();
+      if (trimmed !== "" && String(Number(trimmed)) === trimmed) {
+        return Number(trimmed);
+      }
+    }
     return target.value;
   }
   return eventOrValue as FieldValue;
@@ -278,11 +292,24 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const [reopenedSections, setReopenedSections] = useState<
     Record<string, ReopenedSection>
   >({});
+  const [userNormalizations, setUserNormalizations] = useState<
+    Record<string, Normalization>
+  >({});
+  const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
   const activeFillRef = useRef<ActiveFill | null>(null);
   const latestFillIdRef = useRef<string | null>(null);
   const localFillCounterRef = useRef(0);
   const autoFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRegistryRef = useRef(new Map<string, HTMLElement>());
+
+  const clearUserNormalization = useCallback((fieldId: string): void => {
+    setUserNormalizations((current) => {
+      if (!Object.hasOwn(current, fieldId)) return current;
+      const next = { ...current };
+      delete next[fieldId];
+      return next;
+    });
+  }, []);
 
   const registerInput = useCallback(
     (fieldId: string, element: HTMLElement | null): void => {
@@ -595,19 +622,79 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
           .join(" ");
         const provenance = field.provenance;
         const span = provenance?.span;
+        const userNormalization = userNormalizations[definition.id];
+        const normalization =
+          userNormalization ?? provenance?.normalization ?? null;
+        const draft =
+          focusedFieldId === definition.id &&
+          (definition.type === "date" ||
+            definition.type === "number" ||
+            definition.type === "phone") &&
+          typeof field.value === "string" &&
+          normalization === null;
+        const normalize = (): void => {
+          if (
+            definition.type !== "date" &&
+            definition.type !== "number" &&
+            definition.type !== "phone"
+          ) {
+            return;
+          }
+          const raw = store.getState().fields[definition.id]?.value;
+          if (typeof raw !== "string") return;
+          const normalized = normalizeValue(definition, raw, {
+            today: todayRef.current,
+          });
+          if (!normalized || fieldValuesEqual(normalized.value, raw)) return;
+
+          store.dispatch({
+            type: "OVERRIDE",
+            fieldId: definition.id,
+            value: normalized.value,
+          });
+          if (
+            normalized.explanation ||
+            String(normalized.value) !== raw.trim()
+          ) {
+            setUserNormalizations((current) => ({
+              ...current,
+              [definition.id]: {
+                raw,
+                explanation:
+                  normalized.explanation ??
+                  `Read '${raw}' as ${String(normalized.value)}`,
+              },
+            }));
+          }
+        };
         const fieldApi: FieldApi = {
           def: definition,
           state: field,
           visible: isVisible(state, definition.id),
           status,
           value: field.value,
+          draft,
+          normalization,
           setValue(value) {
+            clearUserNormalization(definition.id);
             store.dispatch({ type: "OVERRIDE", fieldId: definition.id, value });
           },
+          normalize,
+          revertNormalization() {
+            if (!userNormalization) return;
+            store.dispatch({
+              type: "OVERRIDE",
+              fieldId: definition.id,
+              value: userNormalization.raw,
+            });
+            clearUserNormalization(definition.id);
+          },
           accept() {
+            clearUserNormalization(definition.id);
             store.dispatch({ type: "ACCEPT", fieldId: definition.id });
           },
           revert() {
+            clearUserNormalization(definition.id);
             store.dispatch({ type: "REVERT", fieldId: definition.id });
           },
           dismiss() {
@@ -617,6 +704,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
             });
           },
           answer(value, optionIndex) {
+            clearUserNormalization(definition.id);
             store.dispatch({
               type: "ANSWER",
               fieldId: definition.id,
@@ -625,6 +713,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
             });
           },
           useSelection(value, selectedSpan) {
+            clearUserNormalization(definition.id);
             store.dispatch({
               type: "USE_SELECTION",
               fieldId: definition.id,
@@ -663,11 +752,21 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
               registerInput(definition.id, element);
             },
             onChange(eventOrValue) {
+              clearUserNormalization(definition.id);
               store.dispatch({
                 type: "OVERRIDE",
                 fieldId: definition.id,
                 value: eventValue(definition, eventOrValue),
               });
+            },
+            onFocus() {
+              setFocusedFieldId(definition.id);
+            },
+            onBlur() {
+              normalize();
+              setFocusedFieldId((current) =>
+                current === definition.id ? null : current,
+              );
             },
           },
         };
@@ -799,8 +898,10 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     addFile,
     addText,
     cancelFill,
+    clearUserNormalization,
     clearActiveSpan,
     dropped,
+    focusedFieldId,
     focusSpan,
     highlightedOption,
     pendingSources,
@@ -812,5 +913,6 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     sourceError,
     state,
     store,
+    userNormalizations,
   ]);
 }

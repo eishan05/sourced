@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { FieldValue } from "../definition";
+import { defineForm, type FieldValue } from "../definition";
 import type { FormEvent } from "./events";
 import { createInitialState, reduce } from "./reducer";
 import {
@@ -123,6 +123,55 @@ describe("createInitialState", () => {
     expect(() => createInitialState(testForm, { missing: "value" })).toThrow(
       /unknown initial value field id "missing"/i,
     );
+  });
+});
+
+describe("field issues", () => {
+  it("recomputes validation errors and suspicious warnings together", () => {
+    const form = defineForm({
+      id: "suspicious-values",
+      title: "Suspicious values",
+      version: 1,
+      sections: [
+        {
+          id: "identity",
+          title: "Identity",
+          fields: [
+            {
+              id: "employeeId",
+              type: "text",
+              label: "Employee ID",
+              constraints: {
+                pattern: "^\\d{9}$",
+                patternMessage: "Employee ID must be exactly 9 digits",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const state = reduce(createInitialState(form), {
+      type: "OVERRIDE",
+      fieldId: "employeeId",
+      value: "12345678",
+    });
+
+    expect(state.fields.employeeId?.issues).toEqual([
+      {
+        code: "pattern",
+        message: "Employee ID must be exactly 9 digits",
+        severity: "error",
+      },
+      {
+        code: "suspicious_length",
+        message: "Looks one digit short",
+        severity: "warning",
+      },
+    ]);
+    expect(submitBlockers(state)).toEqual([
+      { reason: "invalid", fieldId: "employeeId" },
+    ]);
   });
 });
 
@@ -320,6 +369,24 @@ describe("field transition table", () => {
 });
 
 describe("trust invariants", () => {
+  it("carries proposal normalization into client provenance", () => {
+    const state = reduce(started(), {
+      type: "PROPOSAL_RECEIVED",
+      proposal: {
+        ...proposal("gradYear", "extracted", 2021),
+        normalization: {
+          raw: "2,021",
+          explanation: "Read '2,021' as 2021",
+        },
+      },
+    });
+
+    expect(state.fields.gradYear?.provenance?.normalization).toEqual({
+      raw: "2,021",
+      explanation: "Read '2,021' as 2021",
+    });
+  });
+
   it("tracks fill lifecycle, counters, and deduplicated no-evidence events", () => {
     let state = started();
     state = reduce(state, {

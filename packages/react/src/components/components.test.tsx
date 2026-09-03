@@ -13,6 +13,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -23,6 +24,8 @@ import { DropZone } from "./DropZone";
 import { Field } from "./Field";
 import { Ghost } from "./Ghost";
 import { HumanOnlyNote } from "./HumanOnlyNote";
+import { Issues } from "./Issues";
+import { Normalization } from "./Normalization";
 import { ProvenanceChip } from "./ProvenanceChip";
 import { SourcePane } from "./SourcePane";
 
@@ -36,9 +39,221 @@ function Harness({ children }: { children: (api: AIFormApi) => ReactNode }) {
     transport: idleTransport,
     autoFillOnSource: false,
     initialValues: { linkedin: "linkedin.com/in/priya" },
+    today: "2026-09-03",
   });
   return <AIFormProvider api={api}>{children(api)}</AIFormProvider>;
 }
+
+function FieldHarness({
+  children,
+  fieldId,
+}: {
+  children?: (api: AIFormApi) => ReactNode;
+  fieldId: string;
+}) {
+  const api = useAIForm({
+    form: jobApplicationForm,
+    transport: idleTransport,
+    autoFillOnSource: false,
+    today: "2026-09-03",
+  });
+  const field = api.field(fieldId);
+  return (
+    <AIFormProvider api={api}>
+      <label htmlFor={fieldId}>{field.def.label}</label>
+      <input {...field.inputProps} type="text" />
+      <Normalization fieldId={fieldId} />
+      <Issues fieldId={fieldId} />
+      {children?.(api)}
+    </AIFormProvider>
+  );
+}
+
+describe("validation as conversation", () => {
+  it("keeps clean numbers numeric without showing a note or issues", async () => {
+    const user = userEvent.setup();
+    let api: AIFormApi | undefined;
+    const { container } = render(
+      <FieldHarness fieldId="yearsExperience">
+        {(value) => {
+          api = value;
+          return null;
+        }}
+      </FieldHarness>,
+    );
+
+    const input = screen.getByRole("textbox", {
+      name: "Years of experience",
+    });
+    await user.type(input, "12");
+
+    expect(api?.field("yearsExperience").value).toBe(12);
+    await user.tab();
+
+    expect(api?.field("yearsExperience").value).toBe(12);
+    expect(container.querySelector("[data-normalization]")).toBeNull();
+    expect(container.querySelector("[data-severity]")).toBeNull();
+  });
+
+  it("normalizes a formatted number on blur", async () => {
+    const user = userEvent.setup();
+    let api: AIFormApi | undefined;
+    render(
+      <FieldHarness fieldId="yearsExperience">
+        {(value) => {
+          api = value;
+          return null;
+        }}
+      </FieldHarness>,
+    );
+
+    const input = screen.getByRole("textbox", {
+      name: "Years of experience",
+    });
+    await user.type(input, "1,200");
+    await user.tab();
+
+    expect(api?.field("yearsExperience").value).toBe(1200);
+    expect(screen.getByText("Read '1,200' as 1200")).toHaveAttribute(
+      "data-normalization",
+    );
+  });
+
+  it("normalizes a conversational date on blur and restores the raw text", async () => {
+    const user = userEvent.setup();
+    let api: AIFormApi | undefined;
+    render(
+      <FieldHarness fieldId="startDate">
+        {(value) => {
+          api = value;
+          return null;
+        }}
+      </FieldHarness>,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Start date" });
+    await user.type(input, "last March");
+    expect(api?.field("startDate").value).toBe("last March");
+    expect(api?.field("startDate").draft).toBe(true);
+    expect(document.querySelector('[data-severity="error"]')).toBeNull();
+    await user.tab();
+
+    expect(input).toHaveValue("2026-03-01");
+    expect(api?.field("startDate").value).toBe("2026-03-01");
+    expect(screen.getByText("Read 'last March' as 2026-03-01")).toHaveAttribute(
+      "data-normalization",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Use what I typed" }));
+    expect(input).toHaveValue("last March");
+    expect(api?.field("startDate").normalization).toBeNull();
+    expect(api?.field("startDate").draft).toBe(false);
+    expect(
+      screen.getByText("Start date must be a valid YYYY-MM-DD date"),
+    ).toHaveAttribute("data-severity", "error");
+  });
+
+  it("shows a suspicious ID warning without adding a warning blocker", async () => {
+    const user = userEvent.setup();
+    let api: AIFormApi | undefined;
+    render(
+      <FieldHarness fieldId="employeeId">
+        {(value) => {
+          api = value;
+          return null;
+        }}
+      </FieldHarness>,
+    );
+
+    const input = screen.getByRole("textbox", {
+      name: "Employee ID (9 digits)",
+    });
+    await user.type(input, "12345678");
+
+    expect(input).toHaveFocus();
+    expect(screen.getByText("Looks one digit short")).toHaveAttribute(
+      "data-severity",
+      "warning",
+    );
+    expect(
+      api?.submit.blockers.filter(
+        (blocker) => blocker.fieldId === "employeeId",
+      ),
+    ).toEqual([{ reason: "invalid", fieldId: "employeeId" }]);
+
+    await user.type(input, "9");
+    expect(input).toHaveValue("123456789");
+    expect(screen.queryByText("Looks one digit short")).not.toBeInTheDocument();
+    expect(
+      api?.submit.blockers.some((blocker) => blocker.fieldId === "employeeId"),
+    ).toBe(false);
+  });
+
+  it("formats a phone number on blur", async () => {
+    const user = userEvent.setup();
+    let api: AIFormApi | undefined;
+    render(
+      <FieldHarness fieldId="phone">
+        {(value) => {
+          api = value;
+          return null;
+        }}
+      </FieldHarness>,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Phone" });
+    await user.type(input, "(555) 010-1234");
+    await user.tab();
+
+    expect(input).toHaveValue("+1 (555) 010-1234");
+    expect(api?.field("phone").value).toBe("+1 (555) 010-1234");
+
+    await user.type(input, "5");
+    expect(api?.field("phone").normalization).toBeNull();
+  });
+
+  it("shows AI normalization without a revert action", () => {
+    let api: AIFormApi | undefined;
+    render(
+      <FieldHarness fieldId="startDate">
+        {(value) => {
+          api = value;
+          return null;
+        }}
+      </FieldHarness>,
+    );
+
+    act(() => {
+      api?.dispatch({
+        type: "FILL_STARTED",
+        fillId: "fill-normalization",
+        sourceIds: [],
+      });
+      api?.dispatch({
+        type: "PROPOSAL_RECEIVED",
+        proposal: {
+          id: "proposal-normalization",
+          fillId: "fill-normalization",
+          fieldId: "startDate",
+          kind: "extracted",
+          value: "2021-03-01",
+          span: null,
+          normalization: {
+            raw: "Mar 2021",
+            explanation: "Read 'Mar 2021' as 2021-03-01",
+          },
+        },
+      });
+    });
+
+    expect(screen.getByText("Read 'Mar 2021' as 2021-03-01")).toHaveAttribute(
+      "data-normalization",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Use what I typed" }),
+    ).not.toBeInTheDocument();
+  });
+});
 
 function span(sourceId: string, start: number, end: number): Span {
   return {

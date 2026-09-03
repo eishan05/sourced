@@ -5,6 +5,7 @@ export * from "./Ghost";
 export * from "./HiddenSection";
 export * from "./HumanOnlyNote";
 export * from "./Issues";
+export * from "./Normalization";
 export * from "./ProvenanceChip";
 export * from "./ReviewBar";
 export * from "./SourcePane";

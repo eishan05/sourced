@@ -14,6 +14,15 @@ export const jobApplicationForm = defineForm({
         { id: "email", type: "email", label: "Email", required: true },
         { id: "phone", type: "phone", label: "Phone" },
         {
+          id: "employeeId",
+          type: "text",
+          label: "Employee ID (9 digits)",
+          constraints: {
+            pattern: "^\\d{9}$",
+            patternMessage: "Employee ID must be exactly 9 digits",
+          },
+        },
+        {
           id: "location",
           type: "text",
           label: "Location",

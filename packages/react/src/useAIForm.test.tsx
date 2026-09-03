@@ -472,7 +472,7 @@ describe("useAIForm sources", () => {
 describe("field input props", () => {
   const idleTransport: FillTransport = async function* () {};
 
-  it("coerces number and checkbox change events", () => {
+  it("coerces clean number and checkbox changes immediately", () => {
     const { result } = renderHook(() =>
       useAIForm({
         form: jobApplicationForm,
@@ -491,6 +491,10 @@ describe("field input props", () => {
     });
 
     expect(result.current.field("gradYear").value).toBe(2024);
+    act(() => result.current.field("gradYear").inputProps.onBlur());
+
+    expect(result.current.field("gradYear").value).toBe(2024);
+    expect(result.current.field("gradYear").normalization).toBeNull();
     expect(result.current.field("currentlyEmployed").value).toBe(true);
   });
 });

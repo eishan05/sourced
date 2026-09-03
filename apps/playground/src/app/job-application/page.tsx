@@ -14,6 +14,7 @@ import {
   HiddenSection,
   HumanOnlyNote,
   Issues,
+  Normalization,
   ProvenanceChip,
   ReviewBar,
   SourcePane,
@@ -128,7 +129,14 @@ function FieldControl({ field }: { field: FieldApi }) {
         <input
           {...field.inputProps}
           className={controlClass}
-          type={field.def.type === "phone" ? "tel" : field.def.type}
+          inputMode={field.def.type === "number" ? "decimal" : undefined}
+          type={
+            field.def.type === "phone"
+              ? "tel"
+              : field.def.type === "email"
+                ? "email"
+                : "text"
+          }
           value={scalarValue(field.value)}
         />
       );
@@ -185,8 +193,14 @@ function FormField({ fieldId }: { fieldId: string }) {
             className="mt-2 text-sm font-medium text-zinc-600"
             fieldId={field.def.id}
           />
+          {["date", "number", "phone"].includes(field.def.type) ? (
+            <Normalization
+              className="mt-2 text-sm text-zinc-600 [&_button]:font-medium [&_button]:underline [&_button]:underline-offset-4"
+              fieldId={field.def.id}
+            />
+          ) : null}
           <Issues
-            className="mt-2 list-disc pl-5 text-sm text-red-700"
+            className="mt-2 list-disc pl-5 text-sm [&_li[data-severity=error]]:text-red-700 [&_li[data-severity=warning]]:text-amber-700"
             fieldId={field.def.id}
           />
           <AskBack

@@ -16,6 +16,10 @@
         "quote": "+1 (415) 555-0101",
         "kind": "extracted"
       },
+      "employeeId": {
+        "value": null,
+        "kind": "inferred"
+      },
       "location": {
         "value": "San Francisco, CA",
         "quote": "San Francisco, CA",
@@ -99,6 +103,10 @@
         "value": null,
         "kind": "inferred"
       },
+      "employeeId": {
+        "value": null,
+        "kind": "inferred"
+      },
       "location": {
         "value": "Brooklyn, NY",
         "quote": "Brooklyn, NY",
@@ -173,6 +181,10 @@
         "value": "+49 30 555-0127",
         "quote": "+49 30 555-0127",
         "kind": "extracted"
+      },
+      "employeeId": {
+        "value": null,
+        "kind": "inferred"
       },
       "location": {
         "value": "Berlin, Germany",

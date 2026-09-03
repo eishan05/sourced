@@ -1,6 +1,7 @@
 import type {
   FieldValue,
   FormDefinition,
+  SerializedFieldDefinition,
   SerializedFormDefinition,
 } from "../definition";
 import {
@@ -11,6 +12,7 @@ import {
   serializeForm,
   validateField,
 } from "../definition";
+import { suspiciousIssues } from "../normalize/suspicious";
 import type { FormEvent } from "./events";
 import { submitBlockers, values } from "./selectors";
 import type {
@@ -34,6 +36,13 @@ function emptyFieldState(): FieldState {
   };
 }
 
+function issuesForValue(
+  field: SerializedFieldDefinition,
+  value: FieldValue,
+): FieldState["issues"] {
+  return [...validateField(field, value), ...suspiciousIssues(field, value)];
+}
+
 export function createInitialState(
   definition: FormDefinition | SerializedFormDefinition,
   initialValues: Record<string, FieldValue> = {},
@@ -55,7 +64,7 @@ export function createInitialState(
         ...emptyFieldState(),
         value,
         provenance: { kind: "prefill" },
-        issues: validateField(field, value),
+        issues: issuesForValue(field, value),
       };
     } else {
       fields[field.id] = emptyFieldState();
@@ -92,7 +101,7 @@ function updateField(
   if (nextField.value !== field.value) {
     nextField = {
       ...nextField,
-      issues: validateField(definition, nextField.value),
+      issues: issuesForValue(definition, nextField.value),
     };
   }
   return {

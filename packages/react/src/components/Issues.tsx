@@ -7,11 +7,14 @@ export interface IssuesProps {
 
 export function Issues({ fieldId, className }: IssuesProps) {
   const field = useField(fieldId);
-  if (field.issues.length === 0) return null;
+  const issues = field.draft
+    ? field.issues.filter((issue) => issue.severity !== "error")
+    : field.issues;
+  if (issues.length === 0) return null;
 
   return (
     <ul className={className} id={`${fieldId}-issues`}>
-      {field.issues.map((issue) => (
+      {issues.map((issue) => (
         <li
           data-severity={issue.severity}
           key={`${issue.code}-${issue.message}`}
