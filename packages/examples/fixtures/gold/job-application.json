@@ -28,8 +28,7 @@
       },
       "currentlyEmployed": {
         "value": true,
-        "quote": "Present",
-        "kind": "extracted"
+        "kind": "inferred"
       },
       "employer": {
         "value": "Lumen Orchard Systems",
@@ -111,8 +110,7 @@
       },
       "currentlyEmployed": {
         "value": true,
-        "quote": "Present",
-        "kind": "extracted"
+        "kind": "inferred"
       },
       "employer": {
         "value": "Acme Corp",

@@ -41,6 +41,7 @@ export const jobApplicationForm = defineForm({
           type: "boolean",
           label: "Currently employed",
           required: true,
+          policy: "infer",
           description: "Whether the applicant is currently employed",
         },
       ],
