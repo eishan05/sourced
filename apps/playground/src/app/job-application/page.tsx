@@ -21,7 +21,7 @@ import {
   useAIForm,
   useReviewKeyboard,
 } from "@ai-native-forms/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
 
@@ -208,6 +208,7 @@ function JobApplicationWorkspace() {
   const api = useAIForm({
     form: jobApplicationForm,
     transport,
+    autoFillOnSource: false,
     onSubmit: (values) => setSubmittedValues(values),
   });
   useReviewKeyboard(api);
@@ -220,6 +221,33 @@ function JobApplicationWorkspace() {
   const pending = visibleFields.filter(
     (field) => field.status === "ai-pending" || field.status === "ghost",
   ).length;
+  const sourceVersion = JSON.stringify(
+    api.sources.list.map((source) => source.id),
+  );
+  const fills = Object.values(api.state.fills);
+  const latestFill = fills[fills.length - 1];
+  const sourcesChangedAfterFill = Boolean(
+    api.sources.list.length > 0 &&
+      latestFill?.status === "done" &&
+      JSON.stringify(latestFill.sourceIds) !== sourceVersion,
+  );
+
+  useEffect(() => {
+    if (
+      api.sources.list.length === 0 ||
+      api.sources.pending.length > 0 ||
+      fills.length > 0
+    ) {
+      return;
+    }
+    const timer = setTimeout(() => void api.fill.run(), 300);
+    return () => clearTimeout(timer);
+  }, [
+    api.fill.run,
+    api.sources.list.length,
+    api.sources.pending.length,
+    fills.length,
+  ]);
 
   const loadSample = async (name: string): Promise<void> => {
     setLocalError(null);
@@ -261,14 +289,22 @@ function JobApplicationWorkspace() {
                 </span>
               </div>
               <DropZone
-                className="mt-4 grid gap-2 border-y border-zinc-300 py-4 [&_button]:w-fit [&_button]:bg-zinc-950 [&_button]:px-3 [&_button]:py-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-white [&_button:disabled]:opacity-40 [&_input]:text-xs [&_textarea]:min-h-28 [&_textarea]:resize-y [&_textarea]:border [&_textarea]:border-zinc-300 [&_textarea]:bg-white [&_textarea]:p-3 [&_textarea]:text-sm [&_textarea]:outline-none [&_textarea:focus]:border-zinc-950"
-                onText={(text, name) => api.sources.addText(text, name)}
+                className="mt-4 grid gap-2 border-y border-zinc-300 py-4 [&_button]:w-fit [&_button]:bg-zinc-950 [&_button]:px-3 [&_button]:py-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-white [&_button:disabled]:opacity-40 [&_input]:text-xs [&_[data-pending-sources]]:font-mono [&_[data-pending-sources]]:text-xs [&_[data-pending-sources]]:text-amber-800 [&_textarea]:min-h-28 [&_textarea]:resize-y [&_textarea]:border [&_textarea]:border-zinc-300 [&_textarea]:bg-white [&_textarea]:p-3 [&_textarea]:text-sm [&_textarea]:outline-none [&_textarea:focus]:border-zinc-950"
+                onFile={(file) => {
+                  setLocalError(null);
+                  return api.sources.addFile(file);
+                }}
+                onText={(text, name) => {
+                  setLocalError(null);
+                  api.sources.addText(text, name);
+                }}
                 onUnsupported={() =>
-                  setLocalError("PDF support arrives in a later task")
+                  setLocalError("Add a .txt, .md, or .pdf file")
                 }
+                pending={api.sources.pending}
               >
                 <p className="text-sm text-zinc-600">
-                  Paste a resume or add a .txt/.md file.
+                  Paste a resume or add a .txt, .md, or .pdf file.
                 </p>
               </DropZone>
 
@@ -300,6 +336,15 @@ function JobApplicationWorkspace() {
                     Cancel
                   </button>
                 ) : null}
+                {sourcesChangedAfterFill ? (
+                  <button
+                    className="font-sans font-semibold text-amber-800 underline underline-offset-4"
+                    onClick={() => void api.fill.run()}
+                    type="button"
+                  >
+                    Fill again
+                  </button>
+                ) : null}
               </div>
               {api.fill.error ? (
                 <p className="mt-2 text-sm text-red-700">
@@ -316,13 +361,16 @@ function JobApplicationWorkspace() {
               {localError ? (
                 <p className="mt-2 text-sm text-red-700">{localError}</p>
               ) : null}
+              {api.sources.error ? (
+                <p className="mt-2 text-sm text-red-700">{api.sources.error}</p>
+              ) : null}
 
               {api.sources.list.length === 0 ? (
                 <p className="mt-10 text-sm text-zinc-500">
                   Source text and highlighted evidence will appear here.
                 </p>
               ) : (
-                <SourcePane className="mt-6 max-h-[55vh] space-y-6 overflow-auto pr-2 [&_header]:mb-2 [&_header]:flex [&_header]:items-center [&_header]:justify-between [&_header]:gap-4 [&_header]:text-sm [&_header]:font-semibold [&_header_button]:font-normal [&_header_button]:text-zinc-500 [&_header_button]:underline [&_mark]:bg-amber-200 [&_mark]:text-inherit [&_mark[data-active=true]]:animate-pulse [&_mark[data-active=true]]:bg-orange-400 [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_pre]:text-sm [&_pre]:leading-7 [&_pre]:text-zinc-700" />
+                <SourcePane className="mt-6 max-h-[55vh] space-y-6 overflow-auto pr-2 [&_header]:mb-2 [&_header]:flex [&_header]:items-center [&_header]:justify-between [&_header]:gap-4 [&_header]:text-sm [&_header]:font-semibold [&_header_button]:font-normal [&_header_button]:text-zinc-500 [&_header_button]:underline [&_mark]:bg-amber-200 [&_mark]:text-inherit [&_mark[data-active=true]]:animate-pulse [&_mark[data-active=true]]:bg-orange-400 [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_pre]:text-sm [&_pre]:leading-7 [&_pre]:text-zinc-700 [&_span[data-page]]:mt-4 [&_span[data-page]]:mb-2 [&_span[data-page]]:block [&_span[data-page]]:border-b [&_span[data-page]]:border-zinc-300 [&_span[data-page]]:pb-1 [&_span[data-page]]:font-mono [&_span[data-page]]:text-[11px] [&_span[data-page]]:leading-5 [&_span[data-page]]:tracking-wider [&_span[data-page]]:text-zinc-500 [&_span[data-page]]:uppercase" />
               )}
             </div>
           </aside>

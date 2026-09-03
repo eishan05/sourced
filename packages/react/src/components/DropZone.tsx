@@ -7,7 +7,9 @@ import {
 
 export interface DropZoneProps {
   onText: (text: string, name?: string) => void;
+  onFile?: (file: File) => unknown | Promise<unknown>;
   onUnsupported?: (file: File) => void;
+  pending?: string[];
   className?: string;
   children?: ReactNode;
 }
@@ -17,9 +19,27 @@ function isTextFile(file: File): boolean {
   return name.endsWith(".txt") || name.endsWith(".md");
 }
 
+function isPdfFile(file: File): boolean {
+  return (
+    file.name.toLowerCase().endsWith(".pdf") ||
+    file.type.toLowerCase() === "application/pdf"
+  );
+}
+
+function pendingEntries(names: string[]): Array<{ key: string; name: string }> {
+  const counts = new Map<string, number>();
+  return names.map((name) => {
+    const count = (counts.get(name) ?? 0) + 1;
+    counts.set(name, count);
+    return { key: `${name}-${count}`, name };
+  });
+}
+
 export function DropZone({
   onText,
+  onFile,
   onUnsupported,
+  pending = [],
   className,
   children,
 }: DropZoneProps) {
@@ -33,6 +53,19 @@ export function DropZone({
 
   const addFiles = async (files: File[]): Promise<void> => {
     for (const file of files) {
+      if (isPdfFile(file)) {
+        if (!onFile) {
+          onUnsupported?.(file);
+          continue;
+        }
+        try {
+          await onFile(file);
+        } catch {
+          // File handlers surface their own errors so one failure does not stop
+          // the rest of a multi-file drop.
+        }
+        continue;
+      }
       if (!isTextFile(file)) {
         onUnsupported?.(file);
         continue;
@@ -54,7 +87,7 @@ export function DropZone({
 
   return (
     <section
-      aria-label="Text source drop zone"
+      aria-label="Source drop zone"
       className={className}
       data-drop-zone
       onDragOver={(event) => event.preventDefault()}
@@ -70,12 +103,21 @@ export function DropZone({
         Add
       </button>
       <input
-        accept=".txt,.md,text/plain,text/markdown"
-        aria-label="Add text files"
+        accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf"
+        aria-label="Add source files"
         multiple
         onChange={onFileChange}
         type="file"
       />
+      {pending.length > 0 ? (
+        <div aria-live="polite" data-pending-sources>
+          {pendingEntries(pending).map(({ key, name }) => (
+            <p data-pending-source key={key}>
+              Extracting {name}…
+            </p>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

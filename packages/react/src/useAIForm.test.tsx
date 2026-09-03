@@ -1,6 +1,7 @@
 import type { FillEvent, FillTransport, Proposal } from "@ai-native-forms/core";
 import { jobApplicationForm } from "@ai-native-forms/examples/forms";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import { useAIForm } from "./useAIForm";
@@ -248,6 +249,223 @@ describe("useAIForm fill lifecycle", () => {
       },
       question: null,
     });
+  });
+
+  it("keeps accepted and typed values on re-fill while filling empty fields", async () => {
+    let call = 0;
+    let secondFillValues: Record<string, unknown> | undefined;
+    const transport: FillTransport = async function* (request) {
+      call += 1;
+      const fillId = `fill-${call}`;
+      const sourceId = request.sources[0]?.id ?? "missing";
+      if (call === 2) secondFillValues = request.currentValues;
+      yield { type: "start", fillId, targetFieldIds: [] };
+      const proposals =
+        call === 1
+          ? [
+              proposal(fillId, "fullName", "Priya Raman", sourceId, 0, 5),
+              proposal(fillId, "email", "priya@example.com", sourceId, 0, 5),
+            ]
+          : [
+              proposal(fillId, "fullName", "Priya R.", sourceId, 0, 5),
+              proposal(fillId, "email", "new@example.com", sourceId, 0, 5),
+              proposal(fillId, "phone", "+1 555 999 0000", sourceId, 0, 5),
+              proposal(fillId, "location", "Bengaluru", sourceId, 0, 5),
+            ];
+      for (const item of proposals) yield item;
+      yield {
+        type: "done",
+        fillId,
+        counts: {
+          proposals: proposals.length,
+          questions: 0,
+          flags: 0,
+        },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+      }),
+    );
+    act(() => {
+      result.current.sources.addText("resume quote", "resume.txt");
+    });
+    await act(async () => result.current.fill.run());
+    act(() => {
+      result.current.field("fullName").accept();
+      result.current.field("email").accept();
+      result.current.field("phone").setValue("+1 555 123 4567");
+    });
+
+    await act(async () => result.current.fill.run());
+
+    expect(secondFillValues).toMatchObject({
+      fullName: "Priya Raman",
+      email: "priya@example.com",
+      phone: "+1 555 123 4567",
+      location: null,
+    });
+    expect(result.current.field("fullName").value).toBe("Priya Raman");
+    expect(result.current.field("email").value).toBe("priya@example.com");
+    expect(result.current.field("phone").value).toBe("+1 555 123 4567");
+    expect(result.current.field("fullName").state.suggestion?.value).toBe(
+      "Priya R.",
+    );
+    expect(result.current.field("email").state.suggestion?.value).toBe(
+      "new@example.com",
+    );
+    expect(result.current.field("phone").state.suggestion?.value).toBe(
+      "+1 555 999 0000",
+    );
+    expect(result.current.field("location").value).toBe("Bengaluru");
+  });
+});
+
+describe("useAIForm sources", () => {
+  const idleTransport: FillTransport = async function* () {};
+
+  it("extracts PDF pages and sends only their text to the transport", async () => {
+    let serializedBody = "";
+    let extractorInput: ArrayBuffer | undefined;
+    let finishExtraction!: (result: {
+      text: string;
+      pageTexts: string[];
+    }) => void;
+    const extraction = new Promise<{ text: string; pageTexts: string[] }>(
+      (resolve) => {
+        finishExtraction = resolve;
+      },
+    );
+    const transport: FillTransport = async function* (request) {
+      serializedBody = JSON.stringify(request);
+      yield { type: "start", fillId: "fill-pdf", targetFieldIds: [] };
+      yield {
+        type: "done",
+        fillId: "fill-pdf",
+        counts: { proposals: 0, questions: 0, flags: 0 },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+        pdfExtractor: async (data) => {
+          extractorInput = data;
+          return extraction;
+        },
+      }),
+    );
+    const file = new File([new Uint8Array([1, 2, 3])], "resume.pdf", {
+      type: "application/pdf",
+    });
+
+    let source:
+      | Awaited<ReturnType<typeof result.current.sources.addFile>>
+      | undefined;
+    let addPromise: Promise<NonNullable<typeof source>> | undefined;
+    act(() => {
+      addPromise = result.current.sources.addFile(file);
+    });
+    expect(result.current.sources.pending).toEqual(["resume.pdf"]);
+    await act(async () => {
+      finishExtraction({
+        text: "Priya Raman\n\npriya@example.com",
+        pageTexts: ["Priya Raman", "priya@example.com"],
+      });
+      source = await addPromise;
+    });
+    await act(async () => result.current.fill.run());
+
+    expect(extractorInput).toBeInstanceOf(ArrayBuffer);
+    expect(source).toMatchObject({
+      name: "resume.pdf",
+      kind: "pdf",
+      text: "Priya Raman\n\npriya@example.com",
+      pageOffsets: [0, 13],
+    });
+    expect(JSON.parse(serializedBody).sources).toEqual([
+      expect.objectContaining({
+        name: "resume.pdf",
+        kind: "pdf",
+        text: "Priya Raman\n\npriya@example.com",
+        pageOffsets: [0, 13],
+      }),
+    ]);
+    expect(serializedBody).not.toMatch(/File|ArrayBuffer/);
+  });
+
+  it("extracts a generated PDF with the default extractor", async () => {
+    const document = await PDFDocument.create();
+    const font = await document.embedFont(StandardFonts.Helvetica);
+    document
+      .addPage([612, 792])
+      .drawText("Priya Raman", { x: 54, y: 738, size: 11, font });
+    document.addPage([612, 792]).drawText("priya.raman@example.com", {
+      x: 54,
+      y: 738,
+      size: 11,
+      font,
+    });
+    const bytes = await document.save();
+    const fileData = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ) as ArrayBuffer;
+    const file = new File([fileData], "priya-raman.pdf", {
+      type: "application/pdf",
+    });
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport: idleTransport,
+        autoFillOnSource: false,
+      }),
+    );
+
+    const source = await act(() => result.current.sources.addFile(file));
+
+    expect(source).toMatchObject({
+      name: "priya-raman.pdf",
+      kind: "pdf",
+      text: "Priya Raman\n\npriya.raman@example.com",
+      pageOffsets: [0, 13],
+    });
+    expect(result.current.sources.list).toContainEqual(source);
+    expect(result.current.sources.error).toBeNull();
+  });
+
+  it("surfaces PDF extraction errors until the next successful add", async () => {
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport: idleTransport,
+        autoFillOnSource: false,
+        pdfExtractor: async () => {
+          throw new Error("Encrypted PDF");
+        },
+      }),
+    );
+
+    await act(async () => {
+      await expect(
+        result.current.sources.addFile(
+          new File([new Uint8Array([1])], "locked.pdf"),
+        ),
+      ).rejects.toThrow("Could not extract locked.pdf: Encrypted PDF");
+    });
+    expect(result.current.sources.pending).toEqual([]);
+    expect(result.current.sources.error).toBe(
+      "Could not extract locked.pdf: Encrypted PDF",
+    );
+
+    act(() => {
+      result.current.sources.addText("replacement", "notes.txt");
+    });
+    expect(result.current.sources.error).toBeNull();
   });
 });
 

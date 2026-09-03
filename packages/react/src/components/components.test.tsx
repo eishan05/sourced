@@ -1,4 +1,8 @@
-import type { FillTransport, Span } from "@ai-native-forms/core";
+import {
+  createSource,
+  type FillTransport,
+  type Span,
+} from "@ai-native-forms/core";
 import { jobApplicationForm } from "@ai-native-forms/examples/forms";
 import {
   act,
@@ -6,6 +10,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -14,6 +19,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { AIFormProvider } from "../context";
 import { type AIFormApi, useAIForm } from "../useAIForm";
 import { AskBack } from "./AskBack";
+import { DropZone } from "./DropZone";
 import { Field } from "./Field";
 import { Ghost } from "./Ghost";
 import { HumanOnlyNote } from "./HumanOnlyNote";
@@ -133,6 +139,74 @@ describe("SourcePane", () => {
       "data-active",
       "true",
     );
+  });
+
+  it("renders PDF page boundaries and removes the source", () => {
+    let api: AIFormApi | undefined;
+    const { container } = render(
+      <Harness>
+        {(value) => {
+          api = value;
+          return <SourcePane />;
+        }}
+      </Harness>,
+    );
+    if (!api) throw new Error("Harness did not expose the API");
+    act(() => {
+      api?.dispatch({
+        type: "SOURCE_ADDED",
+        source: createSource({
+          id: "pdf-source",
+          now: 0,
+          name: "resume.pdf",
+          kind: "pdf",
+          text: "ignored",
+          pageTexts: ["alpha", "beta"],
+        }),
+      });
+    });
+
+    const markers = [...container.querySelectorAll<HTMLElement>("[data-page]")];
+    expect(markers.map((marker) => marker.textContent)).toEqual([
+      "Page 1",
+      "Page 2",
+    ]);
+    expect(markers.map((marker) => marker.dataset.offset)).toEqual(["0", "7"]);
+    const sourceText = container.querySelector("[data-source-text]");
+    expect(
+      [...(sourceText?.childNodes ?? [])].map((node) =>
+        node instanceof HTMLElement
+          ? `page-${node.dataset.page}`
+          : node.textContent,
+      ),
+    ).toEqual(["page-1", "alpha\n\n", "page-2", "beta"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(container.querySelector('[data-source-id="pdf-source"]')).toBeNull();
+    expect(api.sources.list).toEqual([]);
+  });
+});
+
+describe("DropZone", () => {
+  it("accepts PDF files and shows extraction progress", async () => {
+    const added: File[] = [];
+    render(
+      <DropZone
+        onFile={(file) => added.push(file)}
+        onText={() => undefined}
+        pending={["resume.pdf"]}
+      />,
+    );
+    const input = screen.getByLabelText("Add source files");
+    const file = new File([new Uint8Array([1])], "resume.pdf", {
+      type: "application/pdf",
+    });
+
+    expect(input).toHaveAttribute("accept", expect.stringContaining(".pdf"));
+    expect(screen.getByText("Extracting resume.pdf…")).toBeVisible();
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect(added).toEqual([file]));
   });
 });
 

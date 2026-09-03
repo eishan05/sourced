@@ -41,4 +41,17 @@ describe("buildPrompt", () => {
     expect(result.prompt).toContain("<current_values>");
     expect(result.system).toContain("emit only flag and question");
   });
+
+  it("protects non-empty current values in fill mode", () => {
+    const result = buildPrompt({
+      ...request,
+      currentValues: { fullName: "Priya Raman", email: null },
+    });
+    expect(result.prompt).toContain("<current_values>");
+    expect(result.prompt).toContain('"fullName":"Priya Raman"');
+    expect(result.system).toContain(
+      "propose only for fields whose current value is empty",
+    );
+    expect(result.system).toContain("only when strong verbatim evidence");
+  });
 });

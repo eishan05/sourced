@@ -45,6 +45,9 @@ export interface UseAIFormOptions {
   initialValues?: Record<string, FieldValue>;
   today?: string;
   autoFillOnSource?: boolean;
+  pdfExtractor?: (
+    data: ArrayBuffer,
+  ) => Promise<{ text: string; pageTexts: string[] }>;
   onSubmit?: (
     values: Record<string, FieldValue>,
     summary: SubmitSummary,
@@ -116,6 +119,8 @@ export interface AIFormApi {
   sections: SectionApi[];
   sources: {
     list: Source[];
+    pending: string[];
+    error: string | null;
     addText(text: string, name?: string): Source;
     addFile(file: File): Promise<Source>;
     remove(id: string): void;
@@ -257,11 +262,15 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   );
   const transportRef = useRef(options.transport);
   const onSubmitRef = useRef(options.onSubmit);
+  const pdfExtractorRef = useRef(options.pdfExtractor);
   const todayRef = useRef(options.today ?? localDate());
   transportRef.current = options.transport;
   onSubmitRef.current = options.onSubmit;
+  pdfExtractorRef.current = options.pdfExtractor;
 
   const [activeSpan, setActiveSpan] = useState<Span | null>(null);
+  const [pendingSources, setPendingSources] = useState<string[]>([]);
+  const [sourceError, setSourceError] = useState<string | null>(null);
   const [highlightedOption, setHighlightedOption] = useState(0);
   const [dropped, setDropped] = useState<
     Array<{ fieldId?: string; reason: string; detail?: string }>
@@ -475,6 +484,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     (text: string, name = "pasted-text.txt"): Source => {
       const source = createSource({ name, kind: "paste", text });
       store.dispatch({ type: "SOURCE_ADDED", source });
+      setSourceError(null);
       scheduleAutoFill();
       return source;
     },
@@ -484,12 +494,53 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const addFile = useCallback(
     async (file: File): Promise<Source> => {
       const lowerName = file.name.toLowerCase();
-      if (!lowerName.endsWith(".txt") && !lowerName.endsWith(".md")) {
-        throw new Error("PDF support arrives in a later task");
+      const isPdf =
+        lowerName.endsWith(".pdf") ||
+        file.type.toLowerCase() === "application/pdf";
+      if (!isPdf) {
+        if (!lowerName.endsWith(".txt") && !lowerName.endsWith(".md")) {
+          throw new Error(
+            "Unsupported file type. Add a .txt, .md, or .pdf file.",
+          );
+        }
+        return addText(await file.text(), file.name);
       }
-      return addText(await file.text(), file.name);
+
+      setPendingSources((current) => [...current, file.name]);
+      try {
+        const extractor =
+          pdfExtractorRef.current ??
+          (async (data: ArrayBuffer) => {
+            const { createPdfExtractor } = await import(
+              "@ai-native-forms/react/pdf"
+            );
+            return createPdfExtractor()(data);
+          });
+        const extracted = await extractor(await file.arrayBuffer());
+        const source = createSource({
+          name: file.name,
+          kind: "pdf",
+          text: extracted.text,
+          pageTexts: extracted.pageTexts,
+        });
+        store.dispatch({ type: "SOURCE_ADDED", source });
+        setSourceError(null);
+        scheduleAutoFill();
+        return source;
+      } catch (error) {
+        const message = `Could not extract ${file.name}: ${errorMessage(error)}`;
+        setSourceError(message);
+        throw new Error(message, { cause: error });
+      } finally {
+        setPendingSources((current) => {
+          const index = current.indexOf(file.name);
+          return index < 0
+            ? current
+            : [...current.slice(0, index), ...current.slice(index + 1)];
+        });
+      }
     },
-    [addText],
+    [addText, scheduleAutoFill, store],
   );
 
   const removeSource = useCallback(
@@ -681,6 +732,8 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
       }),
       sources: {
         list: Object.values(state.sources),
+        pending: pendingSources,
+        error: sourceError,
         addText,
         addFile,
         remove: removeSource,
@@ -750,11 +803,13 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     dropped,
     focusSpan,
     highlightedOption,
+    pendingSources,
     registerInput,
     removeSource,
     reopenedSections,
     requestSubmit,
     runFill,
+    sourceError,
     state,
     store,
   ]);

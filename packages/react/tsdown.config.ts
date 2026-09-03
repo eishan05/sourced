@@ -1,7 +1,11 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: {
+    index: "src/index.ts",
+    pdf: "src/pdf/index.ts",
+    worker: "src/pdf/worker.ts",
+  },
   format: ["esm"],
   fixedExtension: false,
   dts: true,

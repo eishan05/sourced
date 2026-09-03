@@ -19,6 +19,7 @@ function sourceSegments(
   text: string,
   highlights: SourceHighlight[],
   activeSpan: ReturnType<typeof useAIFormApi>["sources"]["activeSpan"],
+  pageOffsets: number[] = [],
 ): ReactNode[] {
   const validHighlights = highlights.filter(
     (highlight) =>
@@ -32,13 +33,29 @@ function sourceSegments(
     boundaries.add(highlight.span.start);
     boundaries.add(highlight.span.end);
   }
+  const pageMarkers = new Map<number, number[]>();
+  pageOffsets.forEach((offset, index) => {
+    if (!Number.isInteger(offset) || offset < 0 || offset > text.length) return;
+    boundaries.add(offset);
+    const pages = pageMarkers.get(offset) ?? [];
+    pages.push(index + 1);
+    pageMarkers.set(offset, pages);
+  });
   const points = [...boundaries].sort((left, right) => left - right);
   const nodes: ReactNode[] = [];
 
-  for (let index = 0; index < points.length - 1; index += 1) {
+  for (let index = 0; index < points.length; index += 1) {
     const start = points[index];
     const end = points[index + 1];
-    if (start === undefined || end === undefined || start === end) continue;
+    if (start === undefined) continue;
+    for (const page of pageMarkers.get(start) ?? []) {
+      nodes.push(
+        <span data-offset={start} data-page={page} key={`page-${page}`}>
+          Page {page}
+        </span>,
+      );
+    }
+    if (end === undefined || start === end) continue;
     const segment = text.slice(start, end);
     const covering = validHighlights.filter(
       (highlight) => highlight.span.start < end && highlight.span.end > start,
@@ -66,7 +83,7 @@ function sourceSegments(
         data-field-id={first.fieldId}
         data-field-ids={fieldIds.join(" ")}
         data-kind={kind}
-        key={`${start}-${end}`}
+        key={`mark-${start}-${end}`}
       >
         {segment}
       </mark>,
@@ -78,7 +95,7 @@ function sourceSegments(
 
 export function SourcePane({ sourceId, className }: SourcePaneProps) {
   const api = useAIFormApi();
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLUListElement>(null);
   const sources = sourceId
     ? api.sources.list.filter((source) => source.id === sourceId)
     : api.sources.list;
@@ -92,9 +109,13 @@ export function SourcePane({ sourceId, className }: SourcePaneProps) {
   }, [api.sources.activeSpan]);
 
   return (
-    <div className={className} data-source-pane ref={rootRef}>
+    <ul className={className} data-source-pane ref={rootRef}>
       {sources.map((source) => (
-        <section data-source-id={source.id} key={source.id}>
+        <li
+          data-source-id={source.id}
+          data-source-kind={source.kind}
+          key={source.id}
+        >
           <header>
             <span>{source.name}</span>
             <button onClick={() => api.sources.remove(source.id)} type="button">
@@ -106,10 +127,11 @@ export function SourcePane({ sourceId, className }: SourcePaneProps) {
               source.text,
               api.sources.highlights(source.id),
               api.sources.activeSpan,
+              source.pageOffsets,
             )}
           </pre>
-        </section>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

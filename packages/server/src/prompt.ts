@@ -11,7 +11,9 @@ export function buildPrompt(
   const modeInstruction =
     req.mode === "check"
       ? "In check mode, emit only flag and question items about inconsistencies or suspicious current values."
-      : "Return one item per listed field, in order. Use no_evidence for optional fields with no evidence; ask for required fields with no evidence.";
+      : req.currentValues !== undefined
+        ? "When current_values is present in fill mode, propose only for fields whose current value is empty. Propose a different value for a non-empty field only when strong verbatim evidence in a source supports the different value; otherwise emit no_evidence for that field. Return one item per listed field, in order; use no_evidence for optional empty fields with no evidence, and ask for required empty fields with no evidence."
+        : "Return one item per listed field, in order. Use no_evidence for optional fields with no evidence; ask for required fields with no evidence.";
   const strictReminder = opts.strictReminder
     ? "\nReturn only the JSON array. Do not add prose, markdown, or code fences."
     : "";
@@ -55,7 +57,7 @@ Source: "Acme Corp ... Acme Labs" -> {"kind":"question","fieldId":"employer","qu
     )
     .join("\n");
   const currentValues =
-    req.mode === "check"
+    req.mode === "check" || req.currentValues !== undefined
       ? `\n<current_values>\n${JSON.stringify(req.currentValues ?? {})}\n</current_values>`
       : "";
 

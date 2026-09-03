@@ -1,0 +1,168 @@
+- main [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: ai-native-forms
+      - heading "Job application" [level=1] [ref=e7]
+    - link "Playground home" [ref=e8] [cursor=pointer]:
+      - /url: /
+  - generic [ref=e9]:
+    - complementary [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - heading "Sources" [level=2] [ref=e13]
+          - generic [ref=e14]: 0 added
+        - region "Source drop zone" [ref=e15]:
+          - paragraph [ref=e16]: Paste a resume or add a .txt, .md, or .pdf file.
+          - textbox "Source text" [ref=e17]
+          - button "Add" [disabled] [ref=e18]
+          - button "Add source files" [ref=e19]
+        - generic [ref=e20]:
+          - 'button "Load sample: Priya" [ref=e21]'
+          - 'button "Load sample: Marcus" [ref=e22]'
+          - 'button "Load sample: Lena" [ref=e23]'
+        - generic [ref=e24]:
+          - generic [ref=e25]: "Fill: idle"
+          - generic [ref=e26]: 0/14 filled
+          - generic [ref=e27]: 0 to review
+        - paragraph [ref=e28]: Source text and highlighted evidence will appear here.
+    - generic [ref=e30]:
+      - paragraph [ref=e31]: Fields update as evidence arrives. Review anything highlighted in amber before submitting.
+      - generic [ref=e32]:
+        - generic [ref=e34]:
+          - heading "Contact" [level=2] [ref=e35]
+          - generic [ref=e36]:
+            - generic [ref=e37]: Full name*
+            - textbox "Full name" [ref=e39]
+          - generic [ref=e40]:
+            - generic [ref=e41]: Email*
+            - textbox "Email" [ref=e43]
+          - generic [ref=e44]:
+            - generic [ref=e45]: Phone
+            - textbox "Phone" [ref=e47]
+          - generic [ref=e48]:
+            - generic [ref=e49]: Location
+            - paragraph [ref=e51]: City and state, or city and country
+            - textbox "Location" [ref=e52]
+          - generic [ref=e53]:
+            - generic [ref=e54]: LinkedIn
+            - paragraph [ref=e56]: LinkedIn profile URL
+            - textbox "LinkedIn" [ref=e57]
+        - generic [ref=e59]:
+          - heading "Employment" [level=2] [ref=e60]
+          - generic [ref=e61]:
+            - generic [ref=e62]: Currently employed*
+            - paragraph [ref=e64]: Whether the applicant is currently employed
+            - combobox "Currently employed" [ref=e65]:
+              - option "—" [selected]
+              - option "Yes"
+              - option "No"
+        - generic [ref=e67]:
+          - heading "Current role" [level=2] [ref=e68]
+          - generic [ref=e69]:
+            - generic [ref=e70]: Employer
+            - textbox "Employer" [ref=e72]
+          - generic [ref=e73]:
+            - generic [ref=e74]: Job title
+            - textbox "Job title" [ref=e76]
+          - generic [ref=e77]:
+            - generic [ref=e78]: Start date
+            - paragraph [ref=e80]: Start date of the current role; if only a month is known use the first of the month
+            - textbox "Start date" [ref=e81]
+        - generic [ref=e83]:
+          - heading "Education" [level=2] [ref=e84]
+          - generic [ref=e85]:
+            - generic [ref=e86]: School
+            - textbox "School" [ref=e88]
+          - generic [ref=e89]:
+            - generic [ref=e90]: Degree
+            - textbox "Degree" [ref=e92]
+          - generic [ref=e93]:
+            - generic [ref=e94]: Graduation year
+            - spinbutton "Graduation year" [ref=e96]
+        - generic [ref=e98]:
+          - heading "Skills" [level=2] [ref=e99]
+          - generic [ref=e100]:
+            - generic [ref=e101]: Skills
+            - group "Skills" [ref=e103]:
+              - generic [ref=e105]:
+                - checkbox "TypeScript" [ref=e106]
+                - text: TypeScript
+              - generic [ref=e107]:
+                - checkbox "React" [ref=e108]
+                - text: React
+              - generic [ref=e109]:
+                - checkbox "Node.js" [ref=e110]
+                - text: Node.js
+              - generic [ref=e111]:
+                - checkbox "Python" [ref=e112]
+                - text: Python
+              - generic [ref=e113]:
+                - checkbox "Go" [ref=e114]
+                - text: Go
+              - generic [ref=e115]:
+                - checkbox "Rust" [ref=e116]
+                - text: Rust
+              - generic [ref=e117]:
+                - checkbox "SQL" [ref=e118]
+                - text: SQL
+              - generic [ref=e119]:
+                - checkbox "AWS" [ref=e120]
+                - text: AWS
+              - generic [ref=e121]:
+                - checkbox "GCP" [ref=e122]
+                - text: GCP
+              - generic [ref=e123]:
+                - checkbox "Docker" [ref=e124]
+                - text: Docker
+              - generic [ref=e125]:
+                - checkbox "Kubernetes" [ref=e126]
+                - text: Kubernetes
+              - generic [ref=e127]:
+                - checkbox "Figma" [ref=e128]
+                - text: Figma
+        - generic [ref=e130]:
+          - heading "Experience" [level=2] [ref=e131]
+          - generic [ref=e132]:
+            - generic [ref=e133]: Years of experience
+            - paragraph [ref=e135]: Total years of professional experience; may be inferred from employment dates
+            - spinbutton "Years of experience" [ref=e136]
+        - generic [ref=e138]:
+          - heading "About" [level=2] [ref=e139]
+          - generic [ref=e140]:
+            - generic [ref=e141]: Cover note
+            - paragraph [ref=e143]: A short note on why the applicant is interested; may be drafted from the resume
+            - textbox "Cover note" [ref=e144]
+        - generic [ref=e146]:
+          - heading "Eligibility" [level=2] [ref=e147]
+          - generic [ref=e148]:
+            - generic [ref=e149]: Work authorization*
+            - combobox "Work authorization" [ref=e151]:
+              - option "—" [selected]
+              - option "Citizen or national"
+              - option "Permanent resident"
+              - option "Will need visa sponsorship"
+              - option "Other"
+            - paragraph [ref=e152]: You need to answer this one yourself
+          - generic [ref=e153]:
+            - generic [ref=e154]: Willing to relocate
+            - combobox "Willing to relocate" [ref=e156]:
+              - option "—" [selected]
+              - option "Yes"
+              - option "No"
+            - paragraph [ref=e157]: You need to answer this one yourself
+        - generic [ref=e158]:
+          - paragraph [ref=e159]: No values to submit yet.
+          - generic [ref=e160]:
+            - paragraph [ref=e161]: "Complete these items before submitting:"
+            - list [ref=e162]:
+              - listitem [ref=e163]:
+                - 'button "Full name: is required" [ref=e164]'
+              - listitem [ref=e165]:
+                - 'button "Email: is required" [ref=e166]'
+              - listitem [ref=e167]:
+                - 'button "Currently employed: is required" [ref=e168]'
+              - listitem [ref=e169]:
+                - 'button "Work authorization: is required" [ref=e170]'
+          - generic [ref=e171]:
+            - button "Submit" [disabled] [ref=e172]
+            - button "Clear everything the AI filled" [ref=e173]
