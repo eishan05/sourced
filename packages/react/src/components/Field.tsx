@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { useField } from "../context";
+import { useAIFormApi } from "../context";
 import type { FieldApi } from "../useAIForm";
 
 export interface FieldProps {
@@ -10,10 +10,16 @@ export interface FieldProps {
 }
 
 export function Field({ id, children, className }: FieldProps) {
-  const field = useField(id);
+  const api = useAIFormApi();
+  const field = api.field(id);
   return (
     <div
       className={className}
+      data-cursor={
+        api.review.active && api.review.cursorFieldId === id
+          ? "true"
+          : undefined
+      }
       data-field={id}
       data-provenance={field.state.provenance?.kind}
       data-status={field.status}

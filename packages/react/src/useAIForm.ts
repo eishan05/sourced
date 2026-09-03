@@ -66,6 +66,7 @@ export interface FieldInputProps {
   "data-status": FieldStatus;
   "data-provenance": ProvenanceKind | undefined;
   value: string;
+  ref(element: HTMLElement | null): void;
   onChange(eventOrValue: unknown): void;
 }
 
@@ -82,6 +83,7 @@ export interface FieldApi {
   answer(value: FieldValue, optionIndex?: number): void;
   useSelection(value: FieldValue, span: Span): void;
   clearAI(): void;
+  focus(): void;
   chip: {
     label: string | null;
     kind: ProvenanceKind | null;
@@ -95,6 +97,7 @@ export interface FieldApi {
 export interface AIFormApi {
   state: FormState;
   dispatch: (event: FormEvent) => void;
+  registerInput(fieldId: string, element: HTMLElement | null): void;
   field(id: string): FieldApi;
   fields: Record<string, FieldApi>;
   sections: Array<{
@@ -125,6 +128,7 @@ export interface AIFormApi {
     cursorFieldId: string | null;
     order: string[];
     remaining: string[];
+    progress: { index: number; total: number };
     start(): void;
     next(): void;
     skip(): void;
@@ -238,6 +242,18 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const latestFillIdRef = useRef<string | null>(null);
   const localFillCounterRef = useRef(0);
   const autoFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRegistryRef = useRef(new Map<string, HTMLElement>());
+
+  const registerInput = useCallback(
+    (fieldId: string, element: HTMLElement | null): void => {
+      if (element) {
+        inputRegistryRef.current.set(fieldId, element);
+      } else {
+        inputRegistryRef.current.delete(fieldId);
+      }
+    },
+    [],
+  );
 
   const nextLocalFillId = useCallback(() => {
     localFillCounterRef.current += 1;
@@ -515,6 +531,11 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
           clearAI() {
             store.dispatch({ type: "CLEAR_AI", fieldId: definition.id });
           },
+          focus() {
+            const element = inputRegistryRef.current.get(definition.id);
+            element?.focus();
+            element?.scrollIntoView?.({ block: "center" });
+          },
           chip: {
             label: chipLabel(state, provenance),
             kind: provenance?.kind ?? null,
@@ -534,6 +555,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
               typeof field.value === "string" || typeof field.value === "number"
                 ? String(field.value)
                 : "",
+            ref(element) {
+              registerInput(definition.id, element);
+            },
             onChange(eventOrValue) {
               store.dispatch({
                 type: "OVERRIDE",
@@ -559,6 +583,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     return {
       state,
       dispatch: store.dispatch,
+      registerInput,
       field,
       fields,
       sections: state.definition.sections.map((definition) => {
@@ -594,6 +619,13 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
         cursorFieldId: reviewCursorFieldId(state),
         order: state.review.order,
         remaining: state.review.order.slice(state.review.cursor),
+        progress: {
+          index:
+            state.review.order.length === 0
+              ? 0
+              : Math.min(state.review.cursor + 1, state.review.order.length),
+          total: state.review.order.length,
+        },
         start() {
           store.dispatch({ type: "REVIEW_START" });
         },
@@ -631,6 +663,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     clearActiveSpan,
     dropped,
     focusSpan,
+    registerInput,
     removeSource,
     requestSubmit,
     runFill,

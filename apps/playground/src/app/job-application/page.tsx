@@ -12,10 +12,13 @@ import {
   HumanOnlyNote,
   Issues,
   ProvenanceChip,
+  ReviewBar,
   SourcePane,
+  SubmitSummary,
   useAIForm,
+  useReviewKeyboard,
 } from "@ai-native-forms/react";
-import { useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
 
@@ -71,7 +74,7 @@ function FieldControl({ field }: { field: FieldApi }) {
       return (
         <fieldset className="mt-3 grid gap-2 sm:grid-cols-2">
           <legend className="sr-only">{field.def.label}</legend>
-          {field.def.options?.map((option) => {
+          {field.def.options?.map((option, index) => {
             const checked = selected.includes(option.value);
             return (
               <label
@@ -91,6 +94,7 @@ function FieldControl({ field }: { field: FieldApi }) {
                     )
                   }
                   type="checkbox"
+                  ref={index === 0 ? field.inputProps.ref : undefined}
                   value={option.value}
                 />
                 {option.label}
@@ -112,10 +116,20 @@ function FieldControl({ field }: { field: FieldApi }) {
   }
 }
 
-function FormField({ fieldId }: { fieldId: string }) {
+interface FormFieldProps {
+  fieldId: string;
+  highlightedOption: number;
+  setHighlightedOption: Dispatch<SetStateAction<number>>;
+}
+
+function FormField({
+  fieldId,
+  highlightedOption,
+  setHighlightedOption,
+}: FormFieldProps) {
   return (
     <Field
-      className="border-b border-zinc-200 py-5 transition-colors data-[status=ai-pending]:bg-amber-50 data-[status=ai-pending]:px-3"
+      className="border-b border-zinc-200 py-5 transition-[background-color,box-shadow,padding] data-[cursor=true]:bg-orange-50 data-[cursor=true]:px-3 data-[cursor=true]:ring-2 data-[cursor=true]:ring-orange-400 data-[cursor=true]:ring-offset-2 data-[status=ai-pending]:bg-amber-50 data-[status=ai-pending]:px-3"
       id={fieldId}
     >
       {(field) => (
@@ -175,9 +189,14 @@ function FormField({ fieldId }: { fieldId: string }) {
               <div className="mt-2 flex flex-wrap gap-2">
                 {field.state.question.options.map((option, index) => (
                   <button
-                    className="border border-zinc-300 px-2 py-1 hover:border-zinc-900"
+                    className="border border-zinc-300 px-2 py-1 hover:border-zinc-900 data-[highlighted=true]:border-zinc-950 data-[highlighted=true]:bg-zinc-950 data-[highlighted=true]:text-white"
+                    data-highlighted={
+                      highlightedOption === index ? "true" : undefined
+                    }
                     key={`${option.label}-${JSON.stringify(option.value)}`}
                     onClick={() => field.answer(option.value, index)}
+                    onFocus={() => setHighlightedOption(index)}
+                    onMouseEnter={() => setHighlightedOption(index)}
                     type="button"
                   >
                     {option.label}
@@ -194,11 +213,16 @@ function FormField({ fieldId }: { fieldId: string }) {
 
 function JobApplicationWorkspace() {
   const [localError, setLocalError] = useState<string | null>(null);
+  const [submittedValues, setSubmittedValues] = useState<Record<
+    string,
+    FieldValue
+  > | null>(null);
   const api = useAIForm({
     form: jobApplicationForm,
     transport,
-    onSubmit: (values) => console.log("Job application submitted", values),
+    onSubmit: (values) => setSubmittedValues(values),
   });
+  const { highlightedOption, setHighlightedOption } = useReviewKeyboard(api);
   const visibleFields = Object.values(api.fields).filter(
     (field) => field.visible,
   );
@@ -317,6 +341,7 @@ function JobApplicationWorkspace() {
 
           <section className="bg-white p-5 sm:p-8 lg:p-12">
             <div className="mx-auto max-w-2xl">
+              <ReviewBar className="mb-8 flex flex-col gap-3 border-y border-amber-300 bg-amber-50 px-4 py-3 text-sm text-zinc-800 sm:flex-row sm:items-center sm:justify-between [&_button]:w-fit [&_button]:bg-zinc-950 [&_button]:px-3 [&_button]:py-2 [&_button]:font-semibold [&_button]:text-white [&_div:first-child]:text-base [&_div:last-child]:font-mono [&_div:last-child]:text-xs [&_div:last-child]:text-zinc-600 [&_kbd]:font-semibold [&_p]:font-medium" />
               <p className="text-sm leading-6 text-zinc-600">
                 Fields update as evidence arrives. Review anything highlighted
                 in amber before submitting.
@@ -345,41 +370,26 @@ function JobApplicationWorkspace() {
                         .map((field) => (
                           <FormField
                             fieldId={field.def.id}
+                            highlightedOption={
+                              api.review.cursorFieldId === field.def.id
+                                ? highlightedOption
+                                : -1
+                            }
                             key={field.def.id}
+                            setHighlightedOption={setHighlightedOption}
                           />
                         ))}
                     </section>
                   ))}
 
-                <button
-                  className="bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
-                  disabled={api.submit.blockers.length > 0}
-                  type="submit"
-                >
-                  Submit application
-                </button>
-                {api.submit.blockers.length > 0 ? (
-                  <div className="mt-4 text-sm text-zinc-600">
-                    <p className="font-medium text-zinc-800">
-                      Complete these items before submitting:
-                    </p>
-                    <ul className="mt-2 list-disc space-y-1 pl-5">
-                      {api.submit.blockers.map((blocker) => (
-                        <li
-                          key={`${blocker.reason}-${blocker.fieldId ?? blocker.flagId}`}
-                        >
-                          {blocker.fieldId
-                            ? `${api.field(blocker.fieldId).def.label}: ${blocker.reason}`
-                            : `Form flag: ${blocker.reason}`}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {api.submit.status === "submitted" ? (
-                  <p className="mt-4 text-sm font-medium text-green-700">
-                    Submitted. Check the browser console for the values.
-                  </p>
+                <SubmitSummary className="mt-4 border-t-2 border-zinc-950 pt-5 text-sm text-zinc-600 [&_[data-submit-actions]]:mt-5 [&_[data-submit-actions]]:flex [&_[data-submit-actions]]:flex-wrap [&_[data-submit-actions]]:items-center [&_[data-submit-actions]]:gap-4 [&_[data-submit-actions]_button:first-child]:bg-zinc-950 [&_[data-submit-actions]_button:first-child]:px-5 [&_[data-submit-actions]_button:first-child]:py-3 [&_[data-submit-actions]_button:first-child]:font-semibold [&_[data-submit-actions]_button:first-child]:text-white [&_[data-submit-actions]_button:first-child]:transition [&_[data-submit-actions]_button:first-child:disabled]:cursor-not-allowed [&_[data-submit-actions]_button:first-child:disabled]:bg-zinc-300 [&_[data-submit-actions]_button:first-child:disabled]:text-zinc-500 [&_[data-submit-actions]_button:last-child]:font-medium [&_[data-submit-actions]_button:last-child]:text-zinc-600 [&_[data-submit-actions]_button:last-child]:underline [&_[data-submit-blockers]]:mt-4 [&_[data-submit-blockers]>p]:font-medium [&_[data-submit-blockers]>p]:text-zinc-800 [&_[data-submit-blockers]_button]:text-left [&_[data-submit-blockers]_button]:underline [&_[data-submit-blockers]_button:hover]:text-zinc-950 [&_[data-submit-blockers]_ul]:mt-2 [&_[data-submit-blockers]_ul]:space-y-1" />
+                {api.submit.status === "submitted" && submittedValues ? (
+                  <section className="mt-8 border-l-4 border-green-600 bg-green-50 p-5">
+                    <h2 className="font-semibold text-green-900">Submitted</h2>
+                    <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap text-xs leading-5 text-green-950">
+                      {JSON.stringify(submittedValues, null, 2)}
+                    </pre>
+                  </section>
                 ) : null}
               </form>
             </div>

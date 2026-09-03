@@ -4,4 +4,6 @@ export * from "./Ghost";
 export * from "./HumanOnlyNote";
 export * from "./Issues";
 export * from "./ProvenanceChip";
+export * from "./ReviewBar";
 export * from "./SourcePane";
+export * from "./SubmitSummary";
