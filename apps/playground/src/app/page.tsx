@@ -1,33 +1,23 @@
-import { CORE_VERSION } from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples";
-import { REACT_VERSION } from "@ai-native-forms/react";
-import { SERVER_VERSION } from "@ai-native-forms/server";
-
-const packages = [
-  ["core", CORE_VERSION],
-  ["server", SERVER_VERSION],
-  ["react", REACT_VERSION],
-] as const;
-
 export default function Home() {
   return (
     <main className="flex min-h-screen items-center bg-zinc-950 px-6 text-zinc-100">
-      <div className="mx-auto w-full max-w-3xl py-24">
-        <p className="mb-4 font-mono text-sm tracking-widest text-emerald-400 uppercase">
-          Workspace ready
+      <div className="mx-auto w-full max-w-4xl py-24">
+        <p className="font-mono text-sm tracking-[0.2em] text-amber-400 uppercase">
+          ai-native-forms
         </p>
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">
-          ai-native-forms playground
+        <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-tight sm:text-7xl">
+          Forms that start with the evidence.
         </h1>
-        <p className="mt-4 text-lg text-zinc-300">{jobApplicationForm.title}</p>
-        <dl className="mt-12 divide-y divide-zinc-800 border-y border-zinc-800 font-mono text-sm">
-          {packages.map(([name, version]) => (
-            <div className="flex justify-between py-4" key={name}>
-              <dt className="text-zinc-400">@ai-native-forms/{name}</dt>
-              <dd>{version}</dd>
-            </div>
-          ))}
-        </dl>
+        <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-400">
+          Add a resume, watch the application fill as proposals stream in, and
+          review every answer against its source.
+        </p>
+        <a
+          className="mt-10 inline-block bg-amber-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-300"
+          href="/job-application"
+        >
+          Open job application
+        </a>
       </div>
     </main>
   );

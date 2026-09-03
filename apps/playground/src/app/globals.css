@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
 }

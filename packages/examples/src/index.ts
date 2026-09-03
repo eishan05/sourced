@@ -12,6 +12,21 @@ const RESUME_NAMES = [
 
 export type ResumeName = (typeof RESUME_NAMES)[number];
 
+const RESUME_URLS: Record<ResumeName, URL> = {
+  "lena-fischer.txt": new URL(
+    "../fixtures/resumes/lena-fischer.txt",
+    import.meta.url,
+  ),
+  "marcus-oyelaran.txt": new URL(
+    "../fixtures/resumes/marcus-oyelaran.txt",
+    import.meta.url,
+  ),
+  "priya-raman.txt": new URL(
+    "../fixtures/resumes/priya-raman.txt",
+    import.meta.url,
+  ),
+};
+
 export interface GoldField {
   value: FieldValue;
   quote?: string;
@@ -32,10 +47,7 @@ export function loadResume(name: ResumeName): string {
     throw new Error(`Unknown resume fixture: ${name}`);
   }
 
-  return readFileSync(
-    new URL(`../fixtures/resumes/${name}`, import.meta.url),
-    "utf8",
-  );
+  return readFileSync(RESUME_URLS[name], "utf8");
 }
 
 export function loadGold(): GoldFixture {

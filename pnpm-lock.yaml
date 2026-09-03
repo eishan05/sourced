@@ -99,6 +99,9 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@ai-native-forms/examples':
+        specifier: workspace:*
+        version: link:../examples
       '@testing-library/dom':
         specifier: 10.4.1
         version: 10.4.1
