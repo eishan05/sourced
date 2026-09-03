@@ -7,9 +7,11 @@ describe("forms entry", () => {
     const builtSource = readFileSync(entryUrl, "utf8");
     const entry = (await import(entryUrl.href)) as {
       jobApplicationForm: { id: string };
+      medicalIntakeForm: { id: string };
     };
 
     expect(entry.jobApplicationForm.id).toBe("job-application");
+    expect(entry.medicalIntakeForm.id).toBe("medical-intake");
     expect(builtSource).not.toContain("node:fs");
   });
 });

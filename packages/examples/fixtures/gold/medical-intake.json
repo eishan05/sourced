@@ -1,0 +1,59 @@
+{
+  "maya-chen.txt": {
+    "fields": {
+      "reasonForVisit": {
+        "value": "Persistent cough for two weeks that is worse at night",
+        "quote": "I've had a cough for two weeks, started around Aug 20, and it gets worse at night",
+        "kind": "inferred"
+      },
+      "symptomOnset": {
+        "value": "2026-08-20",
+        "quote": "Aug 20",
+        "kind": "extracted"
+      },
+      "conditions": {
+        "value": ["asthma"],
+        "quote": "asthma",
+        "kind": "extracted"
+      },
+      "hasInsurance": {
+        "value": true,
+        "quote": "I have BlueCross insurance",
+        "kind": "inferred"
+      },
+      "provider": {
+        "value": "BlueCross",
+        "quote": "BlueCross",
+        "kind": "extracted"
+      }
+    }
+  },
+  "jordan-ellis.txt": {
+    "fields": {
+      "reasonForVisit": {
+        "value": "Migraines with nausea that are interrupting work",
+        "quote": "I've been getting migraines with nausea since August 29 and would like help because they are interrupting work",
+        "kind": "inferred"
+      },
+      "symptomOnset": {
+        "value": "2026-08-29",
+        "quote": "August 29",
+        "kind": "extracted"
+      },
+      "conditions": {
+        "value": ["hypertension"],
+        "quote": "high blood pressure",
+        "kind": "extracted"
+      },
+      "hasInsurance": {
+        "value": false,
+        "quote": "I don't have health insurance right now",
+        "kind": "inferred"
+      },
+      "provider": {
+        "value": null,
+        "kind": "inferred"
+      }
+    }
+  }
+}

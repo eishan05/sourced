@@ -23,6 +23,15 @@ export default function Home() {
               <span aria-hidden="true">Open →</span>
             </a>
           </li>
+          <li className="border-b border-zinc-700">
+            <a
+              className="flex items-center justify-between gap-6 py-5 text-lg font-semibold transition hover:text-amber-300"
+              href="/medical-intake"
+            >
+              <span>Medical intake</span>
+              <span aria-hidden="true">Open →</span>
+            </a>
+          </li>
         </ul>
       </div>
     </main>

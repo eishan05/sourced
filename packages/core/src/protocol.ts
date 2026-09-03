@@ -6,7 +6,8 @@ export type DropReason =
   | "quote_not_found"
   | "invalid_value"
   | "unknown_field"
-  | "malformed";
+  | "malformed"
+  | "check-mode";
 
 export type FillEvent =
   | { type: "start"; fillId: string; targetFieldIds: string[] }
@@ -162,6 +163,7 @@ export function isFillEvent(value: unknown): value is FillEvent {
           "invalid_value",
           "unknown_field",
           "malformed",
+          "check-mode",
         ].includes(String(value.reason)) &&
         isOptionalString(value.detail)
       );

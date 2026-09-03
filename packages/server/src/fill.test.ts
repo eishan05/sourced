@@ -114,6 +114,57 @@ describe("fill", () => {
     expect(modelSystem).toContain("emit only flag and question");
   });
 
+  it("drops proposals from check mode at the server boundary", async () => {
+    const events = await collect(
+      fill(
+        { ...request(), mode: "check", currentValues: { fullName: "Priya" } },
+        {
+          adapter: createFakeAdapter([
+            {
+              kind: "proposal",
+              fieldId: "fullName",
+              basis: "extracted",
+              value: "Priya Raman",
+              sourceId: "priya",
+              quote: "Priya Raman",
+            },
+            {
+              kind: "proposal",
+              fieldId: "email",
+              basis: "extracted",
+              value: "priya.raman@example.com",
+              sourceId: "priya",
+              quote: "priya.raman@example.com",
+            },
+          ]),
+          idGen: () => "check-fill",
+        },
+      ),
+    );
+
+    expect(events.filter((event) => event.type === "proposal")).toEqual([]);
+    expect(events.filter((event) => event.type === "dropped")).toEqual([
+      {
+        type: "dropped",
+        fillId: "check-fill",
+        fieldId: "fullName",
+        reason: "check-mode",
+      },
+      {
+        type: "dropped",
+        fillId: "check-fill",
+        fieldId: "email",
+        reason: "check-mode",
+      },
+    ]);
+    expect(events.at(-1)).toEqual({
+      type: "done",
+      fillId: "check-fill",
+      counts: { proposals: 0, questions: 0, flags: 0 },
+      usage: { inputTokens: 0, outputTokens: 0 },
+    });
+  });
+
   it("streams proposals before later model items are consumed", async () => {
     const adapter = createFakeAdapter([
       {

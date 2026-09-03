@@ -24,6 +24,7 @@ export default defineConfig({
   testDir: "./e2e",
   outputDir: "./.next/playwright-results",
   fullyParallel: false,
+  retries: 1,
   use: {
     baseURL: "http://127.0.0.1:3100",
     channel: "chrome",

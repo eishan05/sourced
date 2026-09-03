@@ -141,6 +141,15 @@ export async function* fill(
           };
           continue;
         }
+        if (req.mode === "check" && item.data.kind === "proposal") {
+          yield {
+            type: "dropped",
+            fillId,
+            ...(item.data.fieldId ? { fieldId: item.data.fieldId } : {}),
+            reason: "check-mode",
+          };
+          continue;
+        }
         const result = runPipeline(
           item.data,
           context,

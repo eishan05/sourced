@@ -5,14 +5,20 @@ import {
   createSource,
   type FieldValue,
   type FillRequest,
+  type FormDefinition,
   serializeForm,
 } from "@ai-native-forms/core";
 import {
   type GoldField,
+  type IntakeName,
   jobApplicationForm,
+  listIntakeNotes,
   listResumes,
   loadGold,
+  loadIntakeNote,
+  loadMedicalIntakeGold,
   loadResume,
+  medicalIntakeForm,
   type ResumeName,
 } from "@ai-native-forms/examples";
 
@@ -24,15 +30,25 @@ import {
 } from "../src/model/openrouter";
 import { collectTimedFillEvents } from "./eval-fill-metrics";
 
+const OPEN_ENDED_PROSE_FIELDS = new Set(["coverNote", "reasonForVisit"]);
+
 interface CliOptions {
+  form: "job-application" | "medical-intake";
   models: string[];
   efforts: Array<OpenRouterReasoningEffort | null | undefined>;
-  resume?: string;
+  fixture?: string;
   record: boolean;
 }
 
+interface EvaluationDataset {
+  form: FormDefinition;
+  fixtures: string[];
+  loadFixture(name: string): string;
+  gold: Record<string, { fields: Record<string, GoldField> }>;
+}
+
 interface EvaluationRow {
-  resume: string;
+  fixture: string;
   targets: number;
   coverage: string;
   "extracted rate": string;
@@ -47,9 +63,10 @@ interface EvaluationRow {
 }
 
 function parseArgs(args: string[]): CliOptions {
+  let form: CliOptions["form"] = "job-application";
   const models: string[] = [];
   const efforts: Array<OpenRouterReasoningEffort | null | undefined> = [];
-  let resume: string | undefined;
+  let fixture: string | undefined;
   let record = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -60,8 +77,15 @@ function parseArgs(args: string[]): CliOptions {
       const model = args[index + 1];
       if (model) models.push(model);
       index += 1;
-    } else if (arg === "--resume") {
-      resume = args[index + 1];
+    } else if (arg === "--form") {
+      const value = args[index + 1];
+      if (value !== "job-application" && value !== "medical-intake") {
+        throw new Error(`Unknown form: ${value ?? "missing"}`);
+      }
+      form = value;
+      index += 1;
+    } else if (arg === "--resume" || arg === "--fixture") {
+      fixture = args[index + 1];
       index += 1;
     } else if (arg === "--effort") {
       const effort = args[index + 1];
@@ -81,27 +105,45 @@ function parseArgs(args: string[]): CliOptions {
     }
   }
   return {
+    form,
     models: models.length
       ? models
       : [process.env.AI_FORMS_MODEL ?? "openai/gpt-5.6-luna"],
     efforts: efforts.length ? efforts : [undefined],
-    resume,
+    fixture,
     record,
   };
 }
 
-function chooseResumes(requested?: string): ResumeName[] {
-  if (!requested) return listResumes();
+function datasetFor(form: CliOptions["form"]): EvaluationDataset {
+  if (form === "medical-intake") {
+    return {
+      form: medicalIntakeForm,
+      fixtures: listIntakeNotes(),
+      loadFixture: (name) => loadIntakeNote(name as IntakeName),
+      gold: loadMedicalIntakeGold(),
+    };
+  }
+  return {
+    form: jobApplicationForm,
+    fixtures: listResumes(),
+    loadFixture: (name) => loadResume(name as ResumeName),
+    gold: loadGold(),
+  };
+}
+
+function chooseFixtures(dataset: EvaluationDataset, requested?: string) {
+  if (!requested) return dataset.fixtures;
   const normalized = requested.toLowerCase().replace(/\.txt$/, "");
-  const matches = listResumes().filter((name) =>
+  const matches = dataset.fixtures.filter((name) =>
     name
       .toLowerCase()
       .replace(/\.txt$/, "")
       .startsWith(normalized),
   );
-  const resume = matches.length === 1 ? matches[0] : undefined;
-  if (!resume) throw new Error(`Unknown resume: ${requested}`);
-  return [resume];
+  const fixture = matches.length === 1 ? matches[0] : undefined;
+  if (!fixture) throw new Error(`Unknown fixture: ${requested}`);
+  return [fixture];
 }
 
 function sameValue(actual: FieldValue, expected: FieldValue): boolean {
@@ -142,16 +184,12 @@ function recordingAdapter(
   };
 }
 
-function writeReplay(
-  model: string,
-  resume: ResumeName,
-  items: unknown[],
-): void {
+function writeReplay(model: string, fixture: string, items: unknown[]): void {
   const path = resolve(
     "fixtures",
     "replays",
     slug(model),
-    `${resume.replace(/\.txt$/, "")}.jsonl`,
+    `${fixture.replace(/\.txt$/, "")}.jsonl`,
   );
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
@@ -162,9 +200,10 @@ function writeReplay(
 }
 
 async function evaluate(
+  dataset: EvaluationDataset,
   model: string,
   effort: OpenRouterReasoningEffort | null | undefined,
-  resume: ResumeName,
+  fixture: string,
   record: boolean,
 ): Promise<EvaluationRow> {
   const rawItems: unknown[] = [];
@@ -173,13 +212,13 @@ async function evaluate(
     rawItems,
   );
   const source = createSource({
-    id: resume,
-    name: resume,
+    id: fixture,
+    name: fixture,
     kind: "paste",
-    text: loadResume(resume),
+    text: dataset.loadFixture(fixture),
   });
   const request: FillRequest = {
-    form: serializeForm(jobApplicationForm),
+    form: serializeForm(dataset.form),
     sources: [source],
     mode: "fill",
     today: new Date().toISOString().slice(0, 10),
@@ -187,9 +226,10 @@ async function evaluate(
   const { events, firstItemMs, latencyMs } = await collectTimedFillEvents(
     fill(request, { adapter }),
   );
-  if (record) writeReplay(model, resume, rawItems);
+  if (record) writeReplay(model, fixture, rawItems);
 
-  const goldFields = loadGold()[resume].fields;
+  const goldFields = dataset.gold[fixture]?.fields;
+  if (!goldFields) throw new Error(`Missing gold labels for ${fixture}`);
   const targets = Object.entries(goldFields).filter(
     ([, field]) => field.value !== null,
   );
@@ -214,7 +254,7 @@ async function evaluate(
     return proposal?.kind === "extracted" && proposal.span !== null;
   }).length;
   const wrongValues = targets.filter(([fieldId, gold]) => {
-    if (fieldId === "coverNote") return false;
+    if (OPEN_ENDED_PROSE_FIELDS.has(fieldId)) return false;
     const proposal = proposals.get(fieldId);
     return proposal ? !sameValue(proposal.value, gold.value) : false;
   }).length;
@@ -227,7 +267,7 @@ async function evaluate(
   const done = [...events].reverse().find((event) => event.type === "done");
 
   return {
-    resume,
+    fixture,
     targets: targets.length,
     coverage: ratio(covered, targets.length),
     "extracted rate": ratio(extracted, extractedTargets.length),
@@ -251,20 +291,25 @@ async function main(): Promise<void> {
   }
 
   const options = parseArgs(process.argv.slice(2));
-  const resumes = chooseResumes(options.resume);
+  const dataset = datasetFor(options.form);
+  const fixtures = chooseFixtures(dataset, options.fixture);
   for (const model of options.models) {
     for (const effort of options.efforts) {
       const rows: EvaluationRow[] = [];
-      for (const resume of resumes) {
+      for (const fixture of fixtures) {
         try {
-          rows.push(await evaluate(model, effort, resume, options.record));
+          rows.push(
+            await evaluate(dataset, model, effort, fixture, options.record),
+          );
         } catch (error) {
-          console.error(`${model} / ${resume}:`, error);
+          console.error(`${model} / ${fixture}:`, error);
         }
       }
       const effortLabel =
         effort === null ? "unset" : (effort ?? "adapter default");
-      console.log(`\nModel: ${model} (reasoning effort: ${effortLabel})`);
+      console.log(
+        `\nForm: ${options.form} · Model: ${model} (reasoning effort: ${effortLabel})`,
+      );
       console.table(rows);
     }
   }

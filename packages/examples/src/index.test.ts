@@ -6,12 +6,26 @@ import {
 } from "@ai-native-forms/core";
 import { describe, expect, it } from "vitest";
 
-import { jobApplicationForm, listResumes, loadGold, loadResume } from "./index";
+import {
+  jobApplicationForm,
+  listIntakeNotes,
+  listResumes,
+  loadGold,
+  loadIntakeNote,
+  loadMedicalIntakeGold,
+  loadResume,
+  medicalIntakeForm,
+} from "./index";
 
 describe("examples", () => {
   it("defines a valid job application form", () => {
     expect(() => defineForm(jobApplicationForm)).not.toThrow();
     expect(jobApplicationForm.id).toBe("job-application");
+  });
+
+  it("defines a valid medical intake form", () => {
+    expect(() => defineForm(medicalIntakeForm)).not.toThrow();
+    expect(medicalIntakeForm.id).toBe("medical-intake");
   });
 
   it("lists the three resume fixture names", () => {
@@ -60,6 +74,30 @@ describe("examples", () => {
           validateField(definition, expected.value),
           `${resumeName}:${fieldId} value`,
         ).toEqual([]);
+      }
+    }
+  });
+
+  it("provides valid medical intake gold values with exact quotes", () => {
+    const gold = loadMedicalIntakeGold();
+
+    for (const noteName of listIntakeNotes()) {
+      const note = loadIntakeNote(noteName);
+      for (const [fieldId, expected] of Object.entries(gold[noteName].fields)) {
+        if (expected.quote !== undefined) {
+          expect(
+            note.indexOf(expected.quote),
+            `${noteName}:${fieldId} quote`,
+          ).toBeGreaterThanOrEqual(0);
+        }
+        const definition = fieldById(medicalIntakeForm, fieldId);
+        expect(definition, `${noteName}:${fieldId} definition`).toBeDefined();
+        if (definition) {
+          expect(policyOf(definition)).not.toBe("human");
+          if (expected.value !== null) {
+            expect(validateField(definition, expected.value)).toEqual([]);
+          }
+        }
       }
     }
   });
