@@ -1,0 +1,250 @@
+{
+  "priya-raman.txt": {
+    "fields": {
+      "fullName": {
+        "value": "Priya Raman",
+        "quote": "Priya Raman",
+        "kind": "extracted"
+      },
+      "email": {
+        "value": "priya.raman@example.com",
+        "quote": "priya.raman@example.com",
+        "kind": "extracted"
+      },
+      "phone": {
+        "value": "+1 (415) 555-0101",
+        "quote": "+1 (415) 555-0101",
+        "kind": "extracted"
+      },
+      "location": {
+        "value": "San Francisco, CA",
+        "quote": "San Francisco, CA",
+        "kind": "extracted"
+      },
+      "linkedin": {
+        "value": "https://www.linkedin.com/in/priya-raman",
+        "quote": "https://www.linkedin.com/in/priya-raman",
+        "kind": "extracted"
+      },
+      "currentlyEmployed": {
+        "value": true,
+        "quote": "Present",
+        "kind": "extracted"
+      },
+      "employer": {
+        "value": "Lumen Orchard Systems",
+        "quote": "Lumen Orchard Systems",
+        "kind": "extracted"
+      },
+      "title": {
+        "value": "Senior Software Engineer",
+        "quote": "Senior Software Engineer",
+        "kind": "extracted"
+      },
+      "startDate": {
+        "value": "2022-04-01",
+        "quote": "Apr 2022",
+        "kind": "extracted"
+      },
+      "school": {
+        "value": "Westbridge Institute of Technology",
+        "quote": "Westbridge Institute of Technology",
+        "kind": "extracted"
+      },
+      "degree": {
+        "value": "Bachelor of Technology in Computer Science",
+        "quote": "Bachelor of Technology in Computer Science",
+        "kind": "extracted"
+      },
+      "gradYear": {
+        "value": 2017,
+        "quote": "2017",
+        "kind": "extracted"
+      },
+      "skills": {
+        "value": [
+          "typescript",
+          "react",
+          "node-js",
+          "sql",
+          "aws",
+          "docker",
+          "kubernetes"
+        ],
+        "quote": "TypeScript, React, Node.js, SQL, AWS, Docker, Kubernetes",
+        "kind": "extracted"
+      },
+      "yearsExperience": {
+        "value": 9,
+        "kind": "inferred"
+      },
+      "coverNote": {
+        "value": "I am interested in bringing my experience building dependable TypeScript platforms and mentoring engineers to a software engineering team.",
+        "kind": "inferred"
+      }
+    }
+  },
+  "marcus-oyelaran.txt": {
+    "fields": {
+      "fullName": {
+        "value": "Marcus Oyelaran",
+        "quote": "Marcus Oyelaran",
+        "kind": "extracted"
+      },
+      "email": {
+        "value": "marcus.oyelaran@example.com",
+        "quote": "marcus.oyelaran@example.com",
+        "kind": "extracted"
+      },
+      "phone": {
+        "value": null,
+        "kind": "inferred"
+      },
+      "location": {
+        "value": "Brooklyn, NY",
+        "quote": "Brooklyn, NY",
+        "kind": "extracted"
+      },
+      "linkedin": {
+        "value": "linkedin.com/in/marcus-oyelaran",
+        "kind": "inferred"
+      },
+      "currentlyEmployed": {
+        "value": true,
+        "quote": "Present",
+        "kind": "extracted"
+      },
+      "employer": {
+        "value": "Acme Corp",
+        "quote": "Acme Corp",
+        "kind": "extracted"
+      },
+      "title": {
+        "value": "Staff Platform Engineer",
+        "quote": "Staff Platform Engineer",
+        "kind": "extracted"
+      },
+      "startDate": {
+        "value": "2021-03-01",
+        "quote": "Mar 2021",
+        "kind": "extracted"
+      },
+      "school": {
+        "value": "East River Polytechnic",
+        "quote": "East River Polytechnic",
+        "kind": "extracted"
+      },
+      "degree": {
+        "value": "B.S. Information Systems",
+        "quote": "B.S. Information Systems",
+        "kind": "extracted"
+      },
+      "gradYear": {
+        "value": 2017,
+        "quote": "2017",
+        "kind": "extracted"
+      },
+      "skills": {
+        "value": [
+          "go",
+          "python",
+          "aws",
+          "docker",
+          "kubernetes",
+          "sql",
+          "rust"
+        ],
+        "quote": "I work mostly in Go, Python, AWS, Docker, Kubernetes, and SQL.\nLately I have been learning Rust",
+        "kind": "extracted"
+      },
+      "yearsExperience": {
+        "value": 9,
+        "kind": "inferred"
+      },
+      "coverNote": {
+        "value": "I would bring broad platform experience, a practical approach to reliability, and a track record of helping product teams ship safely.",
+        "kind": "inferred"
+      }
+    }
+  },
+  "lena-fischer.txt": {
+    "fields": {
+      "fullName": {
+        "value": "Lena Fischer",
+        "quote": "Lena Fischer",
+        "kind": "extracted"
+      },
+      "email": {
+        "value": "lena.fischer@example.com",
+        "quote": "lena.fischer@example.com",
+        "kind": "extracted"
+      },
+      "phone": {
+        "value": "+49 30 555-0127",
+        "quote": "+49 30 555-0127",
+        "kind": "extracted"
+      },
+      "location": {
+        "value": "Berlin, Germany",
+        "quote": "Berlin, Germany",
+        "kind": "extracted"
+      },
+      "linkedin": {
+        "value": "https://www.linkedin.com/in/lena-fischer",
+        "quote": "https://www.linkedin.com/in/lena-fischer",
+        "kind": "extracted"
+      },
+      "currentlyEmployed": {
+        "value": false,
+        "kind": "inferred"
+      },
+      "employer": {
+        "value": null,
+        "kind": "inferred"
+      },
+      "title": {
+        "value": null,
+        "kind": "inferred"
+      },
+      "startDate": {
+        "value": null,
+        "kind": "inferred"
+      },
+      "school": {
+        "value": "Rosenfeld Technical University",
+        "quote": "Rosenfeld Technical University",
+        "kind": "extracted"
+      },
+      "degree": {
+        "value": "M.Sc. Computer Science",
+        "quote": "M.Sc. Computer Science",
+        "kind": "extracted"
+      },
+      "gradYear": {
+        "value": 2019,
+        "quote": "2019",
+        "kind": "extracted"
+      },
+      "skills": {
+        "value": [
+          "python",
+          "typescript",
+          "react",
+          "sql",
+          "docker",
+          "gcp"
+        ],
+        "quote": "Python, TypeScript, React, SQL, Docker, GCP",
+        "kind": "extracted"
+      },
+      "yearsExperience": {
+        "value": 6.5,
+        "kind": "inferred"
+      },
+      "coverNote": {
+        "value": "I am interested in applying my research software background, data-systems experience, and focus on maintainable tools to a software engineering role.",
+        "kind": "inferred"
+      }
+    }
+  }
+}

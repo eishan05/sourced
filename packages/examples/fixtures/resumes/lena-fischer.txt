@@ -1,0 +1,59 @@
+Lena Fischer
+Research Software Engineer
+Berlin, Germany | +49 30 555-0127 | lena.fischer@example.com
+https://www.linkedin.com/in/lena-fischer
+
+PROFILE
+
+Research software engineer with experience turning scientific prototypes into
+maintainable tools. Strong background in data systems and reproducible research.
+
+EXPERIENCE
+
+Silver Fern Research Collective — Research Software Engineer
+January 2019 – December 2023 | Berlin, Germany
+• Built Python services that organized climate-model experiment metadata.
+• Created React and TypeScript interfaces for comparing simulation runs.
+• Designed an access-control migration for a distributed, fault-toler-
+ant research platform used by four partner institutes.
+• Added SQL data checks that caught incomplete uploads before publication.
+• Packaged analysis environments with Docker for reproducible studies.
+
+CAREER BREAK
+
+January 2024 – Present
+Family caregiving, independent study, and volunteer translation work.
+Completed short courses in privacy engineering and technical writing.
+
+Mosaic Finch Observatory — Data Engineering Assistant
+August 2014 – July 2016 | Potsdam, Germany
+• Cleaned sensor data and documented calibration procedures.
+• Wrote Python scripts for repeatable monthly research reports.
+• Helped maintain the observatory's small PostgreSQL database.
+
+EDUCATION
+
+Rosenfeld Technical University, Munich
+M.Sc. Computer Science, 2019
+Thesis: Reproducible Pipelines for Environmental Sensor Networks
+
+Havel City University, Berlin
+B.Sc. Computational Physics, 2014
+Graduated with departmental honors.
+
+SKILLS
+
+Python, TypeScript, React, SQL, Docker, GCP
+Research workflows, data provenance, accessibility, documentation
+Languages: German (native), English (fluent), French (conversational)
+
+SELECTED SERVICE
+
+Volunteer documentation editor for the fictional Open Climate Methods group.
+Reviewed student software projects at community research showcases.
+
+INTERESTS
+
+Bookbinding, choral music, railway history, and hiking.
+
+References available on request.

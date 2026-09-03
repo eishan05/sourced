@@ -1,0 +1,55 @@
+Marcus Oyelaran
+Brooklyn, NY • marcus.oyelaran@example.com
+linkedin: marcus-oyelaran
+
+platform engineer / systems generalist
+
+I build reliable infrastructure and help product teams ship without waiting on
+specialists. I like untangling old systems and writing down how they work.
+
+things i've done
+
+Acme Corp, brooklyn
+Staff Platform Engineer                                Mar 2021 – Present
+- own deployment tooling for 14 product services
+* cut the median rollback time from 18 minutes to under five
+  paired with security on service identity and credential rotation
+— started a weekly production review that is still used across engineering
+
+Acme Labs / remote
+Platform Engineer                                      2019-06 / Feb 2021
+• moved batch jobs from hand-managed hosts into containers
+- built a small internal service catalog; docs were part of the feature
+* helped merge two overlapping alerting systems after the company rebrand
+
+paper kite networks, Queens NY
+junior devops engineer                                  June 2017 - May 2019
+configured linux hosts and maintained build scripts
+- rotated through on-call with application engineers
+* replaced a collection of shell scripts with a tested release tool
+
+Before that I supported the campus computing lab during my final year.
+
+education
+
+East River Polytechnic, New York
+B.S. Information Systems — June 2017
+coursework included networks, databases, and distributed systems
+
+What I use
+
+I work mostly in Go, Python, AWS, Docker, Kubernetes, and SQL.
+Lately I have been learning Rust by rebuilding a log parser on weekends.
+Comfortable reviewing architecture notes and debugging unfamiliar services.
+
+selected extras
+
+co-organizer, fictional Brooklyn Systems Reading Group, 2022-present
+wrote internal guides for incident command and blameless follow-ups
+mentor for three engineers moving from support into infrastructure roles
+
+interests
+
+pickup football, community radio, repairing old keyboards
+
+References available on request.

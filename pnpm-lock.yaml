@@ -29,6 +29,9 @@ importers:
       '@ai-native-forms/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@ai-native-forms/examples':
+        specifier: workspace:*
+        version: link:../../packages/examples
       '@ai-native-forms/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -64,7 +67,21 @@ importers:
         specifier: 4.3.3
         version: 4.3.3
 
-  packages/core: {}
+  packages/core:
+    dependencies:
+      zod:
+        specifier: 4.1.12
+        version: 4.1.12
+
+  packages/examples:
+    dependencies:
+      '@ai-native-forms/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: 26.4.1
+        version: 26.4.1
 
   packages/react:
     dependencies:
@@ -1611,6 +1628,9 @@ packages:
   yuku-parser@0.8.7:
     resolution: {integrity: sha512-vRD9nwt4L3aYpxNqeSC4WqLv58xrXef0Ong1Mc45CTXTIpvLafx7JO05sczmQZwdLEZvywrLOGdNC5+Rp5N1BQ==}
 
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
 snapshots:
 
   '@adobe/css-tools@4.5.0': {}
@@ -2802,3 +2822,5 @@ snapshots:
       '@yuku-parser/binding-linux-x64-musl': 0.8.7
       '@yuku-parser/binding-win32-arm64': 0.8.7
       '@yuku-parser/binding-win32-x64': 0.8.7
+
+  zod@4.1.12: {}

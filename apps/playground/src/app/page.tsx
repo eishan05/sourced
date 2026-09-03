@@ -1,4 +1,5 @@
 import { CORE_VERSION } from "@ai-native-forms/core";
+import { jobApplicationForm } from "@ai-native-forms/examples";
 import { REACT_VERSION } from "@ai-native-forms/react";
 import { SERVER_VERSION } from "@ai-native-forms/server";
 
@@ -18,6 +19,7 @@ export default function Home() {
         <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">
           ai-native-forms playground
         </h1>
+        <p className="mt-4 text-lg text-zinc-300">{jobApplicationForm.title}</p>
         <dl className="mt-12 divide-y divide-zinc-800 border-y border-zinc-800 font-mono text-sm">
           {packages.map(([name, version]) => (
             <div className="flex justify-between py-4" key={name}>

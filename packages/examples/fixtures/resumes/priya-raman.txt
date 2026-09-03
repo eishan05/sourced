@@ -1,0 +1,51 @@
+Priya Raman
+Senior Software Engineer
+San Francisco, CA | +1 (415) 555-0101 | priya.raman@example.com
+https://www.linkedin.com/in/priya-raman
+
+SUMMARY
+Software engineer focused on dependable web platforms and thoughtful developer
+experiences. Nine years of experience shipping products with small teams.
+
+EXPERIENCE
+
+Lumen Orchard Systems — Senior Software Engineer
+Apr 2022 – Present | San Francisco, CA
+• Leads a five-person team building workflow tools for operations teams.
+• Designed a TypeScript service layer that reduced integration errors by 38%.
+• Migrated customer-facing applications to React and accessible components.
+• Operates Node.js services on AWS with Docker and Kubernetes.
+• Partners with product and design on quarterly planning and delivery.
+
+Pebble Arc Software — Software Engineer
+Jul 2019 – Mar 2022 | Oakland, CA
+• Built reporting APIs and data exports used by enterprise customers.
+• Improved SQL query performance for high-volume analytics workloads.
+• Introduced contract tests across six Node.js services.
+• Mentored two early-career engineers through promotion.
+
+Juniper Harbor Digital — Associate Software Engineer
+Jun 2017 – Jun 2019 | San Jose, CA
+• Developed internal React tools for support and account teams.
+• Added automated deployment checks and production dashboards.
+• Collaborated with designers to improve keyboard navigation.
+
+EDUCATION
+
+Westbridge Institute of Technology
+Bachelor of Technology in Computer Science, 2017
+
+SKILLS
+
+TypeScript, React, Node.js, SQL, AWS, Docker, Kubernetes
+Testing: Vitest, Playwright, contract testing
+Practices: accessibility, observability, technical mentoring
+
+COMMUNITY
+
+Volunteer mentor for a fictional local learn-to-code program.
+Speaker at internal engineering workshops on reliable migrations.
+
+INTERESTS
+
+Urban gardening, long-distance cycling, and public libraries.

@@ -18,5 +18,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "biome check ."
+  },
+  "dependencies": {
+    "zod": "4.1.12"
   }
 }
