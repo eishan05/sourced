@@ -1,15 +1,17 @@
 "use client";
 
-import type { FieldValue } from "@ai-native-forms/core";
+import type { FieldValue, HiddenReason } from "@ai-native-forms/core";
 import { createFetchTransport } from "@ai-native-forms/core";
 import { jobApplicationForm } from "@ai-native-forms/examples/forms";
 import {
+  type AIFormApi,
   AIFormProvider,
   AskBack,
   DropZone,
   Field,
   type FieldApi,
   Ghost,
+  HiddenSection,
   HumanOnlyNote,
   Issues,
   ProvenanceChip,
@@ -34,6 +36,22 @@ const controlClass =
 
 function scalarValue(value: FieldValue): string {
   return value === null || Array.isArray(value) ? "" : String(value);
+}
+
+function gateAnswer(api: AIFormApi, reason: HiddenReason): string {
+  if (typeof reason.gateValue === "boolean") {
+    return reason.gateValue ? "Yes" : "No";
+  }
+  const gate = api.field(reason.gateFieldId);
+  if (gate.def.type === "select" && typeof reason.gateValue === "string") {
+    return (
+      gate.def.options?.find((option) => option.value === reason.gateValue)
+        ?.label ?? reason.gateValue
+    );
+  }
+  return Array.isArray(reason.gateValue)
+    ? reason.gateValue.join(", ")
+    : String(reason.gateValue);
 }
 
 function FieldControl({ field }: { field: FieldApi }) {
@@ -323,10 +341,22 @@ function JobApplicationWorkspace() {
                   void api.submit.request();
                 }}
               >
-                {api.sections
-                  .filter((section) => section.visible)
-                  .map((section) => (
-                    <section className="mb-10" key={section.def.id}>
+                {api.sections.map((section) => (
+                  <HiddenSection
+                    className="mb-10 data-[hidden=true]:flex data-[hidden=true]:items-center data-[hidden=true]:justify-between data-[hidden=true]:gap-4 data-[hidden=true]:border-y data-[hidden=true]:border-zinc-300 data-[hidden=true]:py-4 data-[hidden=true]:text-sm data-[hidden=true]:text-zinc-600 [&[data-hidden=true]>button]:shrink-0 [&[data-hidden=true]>button]:font-semibold [&[data-hidden=true]>button]:text-zinc-950 [&[data-hidden=true]>button]:underline [&[data-hidden=true]>button]:underline-offset-4"
+                    key={section.def.id}
+                    sectionId={section.def.id}
+                  >
+                    {section.reopened && section.hiddenReason ? (
+                      <p className="mb-4 border-l-2 border-zinc-400 pl-3 text-sm text-zinc-600">
+                        Hidden from submission because you answered{" "}
+                        {gateAnswer(api, section.hiddenReason)} to{" "}
+                        {section.hiddenReason.gateLabel}
+                      </p>
+                    ) : null}
+                    <div
+                      className={section.reopened ? "opacity-60" : undefined}
+                    >
                       <h2 className="border-b-2 border-zinc-950 pb-3 text-lg font-semibold">
                         {section.def.title}
                       </h2>
@@ -335,16 +365,12 @@ function JobApplicationWorkspace() {
                           {section.def.description}
                         </p>
                       ) : null}
-                      {section.fields
-                        .filter((field) => field.visible)
-                        .map((field) => (
-                          <FormField
-                            fieldId={field.def.id}
-                            key={field.def.id}
-                          />
-                        ))}
-                    </section>
-                  ))}
+                      {section.fields.map((field) => (
+                        <FormField fieldId={field.def.id} key={field.def.id} />
+                      ))}
+                    </div>
+                  </HiddenSection>
+                ))}
 
                 <SubmitSummary className="mt-4 border-t-2 border-zinc-950 pt-5 text-sm text-zinc-600 [&_[data-submit-actions]]:mt-5 [&_[data-submit-actions]]:flex [&_[data-submit-actions]]:flex-wrap [&_[data-submit-actions]]:items-center [&_[data-submit-actions]]:gap-4 [&_[data-submit-actions]_button:first-child]:bg-zinc-950 [&_[data-submit-actions]_button:first-child]:px-5 [&_[data-submit-actions]_button:first-child]:py-3 [&_[data-submit-actions]_button:first-child]:font-semibold [&_[data-submit-actions]_button:first-child]:text-white [&_[data-submit-actions]_button:first-child]:transition [&_[data-submit-actions]_button:first-child:disabled]:cursor-not-allowed [&_[data-submit-actions]_button:first-child:disabled]:bg-zinc-300 [&_[data-submit-actions]_button:first-child:disabled]:text-zinc-500 [&_[data-submit-actions]_button:last-child]:font-medium [&_[data-submit-actions]_button:last-child]:text-zinc-600 [&_[data-submit-actions]_button:last-child]:underline [&_[data-submit-blockers]]:mt-4 [&_[data-submit-blockers]>p]:font-medium [&_[data-submit-blockers]>p]:text-zinc-800 [&_[data-submit-blockers]_button]:text-left [&_[data-submit-blockers]_button]:underline [&_[data-submit-blockers]_button:hover]:text-zinc-950 [&_[data-submit-blockers]_ul]:mt-2 [&_[data-submit-blockers]_ul]:space-y-1" />
                 {api.submit.status === "submitted" && submittedValues ? (

@@ -96,6 +96,16 @@ export interface FieldApi {
   inputProps: FieldInputProps;
 }
 
+export interface SectionApi {
+  def: SerializedFormDefinition["sections"][number];
+  visible: boolean;
+  hiddenReason: HiddenReason | null;
+  reopened: boolean;
+  fields: FieldApi[];
+  reopen(): void;
+  collapse(): void;
+}
+
 export interface AIFormApi {
   today: string;
   state: FormState;
@@ -103,12 +113,7 @@ export interface AIFormApi {
   registerInput(fieldId: string, element: HTMLElement | null): void;
   field(id: string): FieldApi;
   fields: Record<string, FieldApi>;
-  sections: Array<{
-    def: SerializedFormDefinition["sections"][number];
-    visible: boolean;
-    hiddenReason: HiddenReason | null;
-    fields: FieldApi[];
-  }>;
+  sections: SectionApi[];
   sources: {
     list: Source[];
     addText(text: string, name?: string): Source;
@@ -155,6 +160,23 @@ interface ActiveFill {
   fillId: string | null;
   cancelled: boolean;
   sourceIds: string[];
+}
+
+interface ReopenedSection {
+  gateFieldId: string;
+  gateValue: FieldValue;
+}
+
+function fieldValuesEqual(left: FieldValue, right: FieldValue): boolean {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => item === right[index])
+    );
+  }
+  return left === right;
 }
 
 function localDate(): string {
@@ -244,6 +266,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const [dropped, setDropped] = useState<
     Array<{ fieldId?: string; reason: string; detail?: string }>
   >([]);
+  const [reopenedSections, setReopenedSections] = useState<
+    Record<string, ReopenedSection>
+  >({});
   const activeFillRef = useRef<ActiveFill | null>(null);
   const latestFillIdRef = useRef<string | null>(null);
   const localFillCounterRef = useRef(0);
@@ -414,6 +439,28 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     },
     [],
   );
+
+  useEffect(() => {
+    setReopenedSections((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      for (const [sectionId, reopened] of Object.entries(current)) {
+        const reason = hiddenReason(state, sectionId);
+        const gateValue = state.fields[reopened.gateFieldId]?.value ?? null;
+        if (
+          !reason ||
+          reason.gateFieldId !== reopened.gateFieldId ||
+          !fieldValuesEqual(gateValue, reopened.gateValue)
+        ) {
+          delete next[sectionId];
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [state]);
 
   const scheduleAutoFill = useCallback(() => {
     if (options.autoFillOnSource === false || activeFillRef.current) return;
@@ -595,11 +642,41 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
       fields,
       sections: state.definition.sections.map((definition) => {
         const reason = hiddenReason(state, definition.id);
+        // An unanswered gate has not made a decision yet. Keeping the section
+        // open lets an inferred gate proposal remain a ghost until acceptance.
+        const visible = reason === null || reason.gateValue === null;
+        const reopenedState = reopenedSections[definition.id];
+        const reopened = Boolean(
+          !visible &&
+            reason &&
+            reopenedState &&
+            reopenedState.gateFieldId === reason.gateFieldId &&
+            fieldValuesEqual(reopenedState.gateValue, reason.gateValue),
+        );
         return {
           def: definition,
-          visible: reason === null,
+          visible,
           hiddenReason: reason,
+          reopened,
           fields: definition.fields.map((item) => field(item.id)),
+          reopen() {
+            if (visible || !reason) return;
+            setReopenedSections((current) => ({
+              ...current,
+              [definition.id]: {
+                gateFieldId: reason.gateFieldId,
+                gateValue: reason.gateValue,
+              },
+            }));
+          },
+          collapse() {
+            setReopenedSections((current) => {
+              if (!Object.hasOwn(current, definition.id)) return current;
+              const next = { ...current };
+              delete next[definition.id];
+              return next;
+            });
+          },
         };
       }),
       sources: {
@@ -675,6 +752,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     highlightedOption,
     registerInput,
     removeSource,
+    reopenedSections,
     requestSubmit,
     runFill,
     state,

@@ -2,6 +2,7 @@ export * from "./AskBack";
 export * from "./DropZone";
 export * from "./Field";
 export * from "./Ghost";
+export * from "./HiddenSection";
 export * from "./HumanOnlyNote";
 export * from "./Issues";
 export * from "./ProvenanceChip";

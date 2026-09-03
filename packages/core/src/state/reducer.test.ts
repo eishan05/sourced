@@ -706,6 +706,89 @@ describe("sources and review", () => {
     });
     expect(reviewCursorFieldId(state)).toBeNull();
   });
+
+  it("extends an active review pass with fields revealed after the cursor", () => {
+    let state = started();
+    for (const event of [
+      {
+        type: "PROPOSAL_RECEIVED",
+        proposal: proposal("currentlyEmployed", "inferred", true),
+      },
+      {
+        type: "PROPOSAL_RECEIVED",
+        proposal: proposal("employer", "extracted", "Acme Corp"),
+      },
+      {
+        type: "QUESTION_RECEIVED",
+        question: question("title"),
+      },
+      {
+        type: "PROPOSAL_RECEIVED",
+        proposal: proposal("gradYear", "extracted", 2017),
+      },
+    ] satisfies FormEvent[]) {
+      state = reduce(state, event);
+    }
+
+    state = reduce(state, { type: "REVIEW_START" });
+    expect(state.review.order).toEqual(["currentlyEmployed", "gradYear"]);
+
+    state = reduce(state, { type: "ACCEPT", fieldId: "currentlyEmployed" });
+    state = reduce(state, { type: "REVIEW_NEXT" });
+    expect(state.review.order).toEqual([
+      "currentlyEmployed",
+      "employer",
+      "title",
+      "gradYear",
+    ]);
+    expect(reviewCursorFieldId(state)).toBe("employer");
+
+    state = reduce(state, { type: "REVIEW_NEXT" });
+    expect(reviewCursorFieldId(state)).toBe("title");
+    state = reduce(state, { type: "REVIEW_NEXT" });
+    expect(reviewCursorFieldId(state)).toBe("gradYear");
+    state = reduce(state, { type: "REVIEW_NEXT" });
+    expect(state.review.active).toBe(false);
+  });
+
+  it("leaves fields revealed before the cursor behind the active pass", () => {
+    let state = started({ currentlyEmployed: false });
+    for (const event of [
+      {
+        type: "PROPOSAL_RECEIVED",
+        proposal: proposal("employer", "extracted", "Acme Corp"),
+      },
+      {
+        type: "PROPOSAL_RECEIVED",
+        proposal: proposal("gradYear", "extracted", 2017),
+      },
+      {
+        type: "PROPOSAL_RECEIVED",
+        proposal: proposal("yearsExperience", "extracted", 9),
+      },
+    ] satisfies FormEvent[]) {
+      state = reduce(state, event);
+    }
+
+    state = reduce(state, { type: "REVIEW_START" });
+    expect(reviewCursorFieldId(state)).toBe("gradYear");
+    state = reduce(state, {
+      type: "OVERRIDE",
+      fieldId: "currentlyEmployed",
+      value: true,
+    });
+    state = reduce(state, { type: "REVIEW_NEXT" });
+
+    expect(state.review.order).toEqual([
+      "employer",
+      "gradYear",
+      "yearsExperience",
+    ]);
+    expect(reviewCursorFieldId(state)).toBe("yearsExperience");
+    state = reduce(state, { type: "REVIEW_PREV" });
+    state = reduce(state, { type: "REVIEW_PREV" });
+    expect(reviewCursorFieldId(state)).toBe("employer");
+  });
 });
 
 describe("scripted session", () => {

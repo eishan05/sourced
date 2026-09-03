@@ -351,27 +351,73 @@ function clearAllAi(state: FormState): FormState {
   };
 }
 
-function moveReviewForward(state: FormState): FormState {
+function extendReviewOrder(state: FormState): FormState {
   if (!state.review.active) {
     return state;
   }
+
   const currentValues = values(state);
+  const currentFieldId = state.review.order[state.review.cursor];
+  const included = new Set(state.review.order);
+  let changed = false;
+
+  for (const definition of fieldsOf(state.definition)) {
+    const field = state.fields[definition.id];
+    if (
+      !included.has(definition.id) &&
+      field &&
+      isFieldVisible(state.definition, definition.id, currentValues) &&
+      (field.reviewStatus === "pending" ||
+        field.suggestion !== null ||
+        field.question !== null)
+    ) {
+      included.add(definition.id);
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return state;
+  }
+
+  const order = fieldsOf(state.definition)
+    .filter((definition) => included.has(definition.id))
+    .map((definition) => definition.id);
+  const cursor = currentFieldId
+    ? order.indexOf(currentFieldId)
+    : state.review.cursor;
+
+  return {
+    ...state,
+    review: { ...state.review, order, cursor },
+  };
+}
+
+function moveReviewForward(state: FormState): FormState {
+  const extended = extendReviewOrder(state);
+  if (!extended.review.active) {
+    return extended;
+  }
+  const currentValues = values(extended);
   for (
-    let cursor = state.review.cursor + 1;
-    cursor < state.review.order.length;
+    let cursor = extended.review.cursor + 1;
+    cursor < extended.review.order.length;
     cursor += 1
   ) {
-    const fieldId = state.review.order[cursor];
-    if (fieldId && isFieldVisible(state.definition, fieldId, currentValues)) {
-      return { ...state, review: { ...state.review, cursor } };
+    const fieldId = extended.review.order[cursor];
+    if (
+      fieldId &&
+      isFieldVisible(extended.definition, fieldId, currentValues)
+    ) {
+      return { ...extended, review: { ...extended.review, cursor } };
     }
   }
   return {
-    ...state,
+    ...extended,
     review: {
-      ...state.review,
+      ...extended.review,
       active: false,
-      cursor: state.review.order.length,
+      cursor: extended.review.order.length,
     },
   };
 }
