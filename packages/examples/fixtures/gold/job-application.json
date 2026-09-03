@@ -145,15 +145,7 @@
         "kind": "extracted"
       },
       "skills": {
-        "value": [
-          "go",
-          "python",
-          "aws",
-          "docker",
-          "kubernetes",
-          "sql",
-          "rust"
-        ],
+        "value": ["go", "python", "aws", "docker", "kubernetes", "sql", "rust"],
         "quote": "I work mostly in Go, Python, AWS, Docker, Kubernetes, and SQL.\nLately I have been learning Rust",
         "kind": "extracted"
       },
@@ -226,14 +218,7 @@
         "kind": "extracted"
       },
       "skills": {
-        "value": [
-          "python",
-          "typescript",
-          "react",
-          "sql",
-          "docker",
-          "gcp"
-        ],
+        "value": ["python", "typescript", "react", "sql", "docker", "gcp"],
         "quote": "Python, TypeScript, React, SQL, Docker, GCP",
         "kind": "extracted"
       },
