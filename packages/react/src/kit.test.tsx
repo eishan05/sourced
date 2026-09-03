@@ -1,13 +1,15 @@
 import { readFileSync } from "node:fs";
 import type { FillTransport } from "@ai-native-forms/core";
 import { jobApplicationForm } from "@ai-native-forms/examples/forms";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { AIFormProvider, useAIForm } from "./index";
+import { type AIFormApi, AIFormProvider, useAIForm } from "./index";
 import { KitForm } from "./kit/Kit";
 
 const idleTransport: FillTransport = async function* () {};
+
+afterEach(cleanup);
 
 function Harness() {
   const api = useAIForm({
@@ -24,6 +26,50 @@ function Harness() {
 }
 
 describe("styled kit", () => {
+  it("renders an inferred boolean ghost as Yes", async () => {
+    const booleanTransport: FillTransport = async function* () {
+      yield { type: "start", fillId: "boolean-fill", targetFieldIds: [] };
+      yield {
+        type: "proposal",
+        proposal: {
+          id: "boolean-proposal",
+          fillId: "boolean-fill",
+          fieldId: "currentlyEmployed",
+          kind: "inferred",
+          value: true,
+          span: null,
+        },
+      };
+      yield {
+        type: "done",
+        fillId: "boolean-fill",
+        counts: { proposals: 1, questions: 0, flags: 0 },
+      };
+    };
+    let api: AIFormApi | undefined;
+
+    function GhostHarness() {
+      api = useAIForm({
+        form: jobApplicationForm,
+        transport: booleanTransport,
+        autoFillOnSource: false,
+      });
+      return (
+        <AIFormProvider api={api}>
+          <KitForm keyboardReview={false} />
+        </AIFormProvider>
+      );
+    }
+
+    render(<GhostHarness />);
+    await act(async () => api?.fill.run());
+
+    expect(
+      screen.getByText("Yes", { selector: "[data-ghost] span" }),
+    ).toBeVisible();
+    expect(screen.queryByText("true")).not.toBeInTheDocument();
+  });
+
   it("renders every job application field type", () => {
     render(<Harness />);
 

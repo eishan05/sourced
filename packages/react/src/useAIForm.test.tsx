@@ -590,6 +590,37 @@ describe("useAIForm checks before submit", () => {
     expect(result.current.submit.blockers).toEqual([]);
     expect(result.current.state.flags[0]?.severity).toBe("warning");
   });
+
+  it("fails open when the pre-submit check errors", async () => {
+    const onSubmit = vi.fn();
+    const transport: FillTransport = async function* () {
+      yield { type: "start", fillId: "check-error", targetFieldIds: [] };
+      yield {
+        type: "error",
+        fillId: "check-error",
+        message: "network unavailable",
+        retryable: true,
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+        initialValues: completeValues,
+        onSubmit,
+      }),
+    );
+
+    await act(async () => result.current.submit.request());
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(result.current.submit.status).toBe("submitted");
+    expect(result.current.check).toMatchObject({
+      status: "error",
+      error: "network unavailable",
+    });
+  });
 });
 
 describe("useAIForm sources", () => {

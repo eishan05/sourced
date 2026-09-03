@@ -747,8 +747,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
 
     if (checkBeforeSubmitRef.current) {
       const result = await executeRun("check");
-      if (result.status !== "done") return;
+      if (result.status === "cancelled" || result.status === "busy") return;
       if (
+        result.status === "done" &&
         submitBlockers(store.getState()).some(
           (blocker) => blocker.reason === "flag",
         )

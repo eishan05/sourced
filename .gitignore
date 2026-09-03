@@ -5,4 +5,5 @@ dist
 coverage
 .env*.local
 *.tsbuildinfo
+apps/playground/e2e/__screenshots__/
 .DS_Store

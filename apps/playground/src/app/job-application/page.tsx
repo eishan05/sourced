@@ -9,9 +9,11 @@ import {
   KitForm,
   KitSourcePane,
 } from "@ai-native-forms/react/kit";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-const transport = createFetchTransport("/api/ai-forms/fill");
+const liveTransport = createFetchTransport("/api/ai-forms/fill");
+const fakeTransport = createFetchTransport("/api/samples/replay/priya");
 
 const SAMPLES = [
   { label: "Priya", name: "priya-raman.txt" },
@@ -20,6 +22,7 @@ const SAMPLES = [
 ] as const;
 
 function JobApplicationWorkspace() {
+  const searchParams = useSearchParams();
   const [localError, setLocalError] = useState<string | null>(null);
   const [submittedValues, setSubmittedValues] = useState<Record<
     string,
@@ -27,7 +30,8 @@ function JobApplicationWorkspace() {
   > | null>(null);
   const api = useAIForm({
     form: jobApplicationForm,
-    transport,
+    transport:
+      searchParams.get("transport") === "fake" ? fakeTransport : liveTransport,
     autoFillOnSource: true,
     onSubmit: (values) => setSubmittedValues(values),
   });
@@ -105,5 +109,9 @@ function JobApplicationWorkspace() {
 }
 
 export default function JobApplicationPage() {
-  return <JobApplicationWorkspace />;
+  return (
+    <Suspense>
+      <JobApplicationWorkspace />
+    </Suspense>
+  );
 }

@@ -4,7 +4,6 @@ import { dirname, resolve } from "node:path";
 import {
   createSource,
   type FieldValue,
-  type FillEvent,
   type FillRequest,
   serializeForm,
 } from "@ai-native-forms/core";
@@ -19,10 +18,15 @@ import {
 
 import { fill } from "../src/fill";
 import type { ModelAdapter } from "../src/model/adapter";
-import { createOpenRouterAdapter } from "../src/model/openrouter";
+import {
+  createOpenRouterAdapter,
+  type OpenRouterReasoningEffort,
+} from "../src/model/openrouter";
+import { collectTimedFillEvents } from "./eval-fill-metrics";
 
 interface CliOptions {
   models: string[];
+  efforts: Array<OpenRouterReasoningEffort | null | undefined>;
   resume?: string;
   record: boolean;
 }
@@ -36,6 +40,7 @@ interface EvaluationRow {
   questions: number;
   flags: number;
   dropped: string;
+  firstItemMs: number | null;
   "latency ms": number;
   "tokens in": number;
   "tokens out": number;
@@ -43,6 +48,7 @@ interface EvaluationRow {
 
 function parseArgs(args: string[]): CliOptions {
   const models: string[] = [];
+  const efforts: Array<OpenRouterReasoningEffort | null | undefined> = [];
   let resume: string | undefined;
   let record = false;
   for (let index = 0; index < args.length; index += 1) {
@@ -57,12 +63,28 @@ function parseArgs(args: string[]): CliOptions {
     } else if (arg === "--resume") {
       resume = args[index + 1];
       index += 1;
+    } else if (arg === "--effort") {
+      const effort = args[index + 1];
+      if (effort === "unset") {
+        efforts.push(null);
+      } else if (
+        effort === "none" ||
+        effort === "low" ||
+        effort === "medium" ||
+        effort === "high"
+      ) {
+        efforts.push(effort);
+      } else {
+        throw new Error(`Unknown reasoning effort: ${effort ?? "missing"}`);
+      }
+      index += 1;
     }
   }
   return {
     models: models.length
       ? models
       : [process.env.AI_FORMS_MODEL ?? "openai/gpt-5.6-luna"],
+    efforts: efforts.length ? efforts : [undefined],
     resume,
     record,
   };
@@ -141,12 +163,13 @@ function writeReplay(
 
 async function evaluate(
   model: string,
+  effort: OpenRouterReasoningEffort | null | undefined,
   resume: ResumeName,
   record: boolean,
 ): Promise<EvaluationRow> {
   const rawItems: unknown[] = [];
   const adapter = recordingAdapter(
-    createOpenRouterAdapter({ model }),
+    createOpenRouterAdapter({ model, effort }),
     rawItems,
   );
   const source = createSource({
@@ -161,10 +184,9 @@ async function evaluate(
     mode: "fill",
     today: new Date().toISOString().slice(0, 10),
   };
-  const started = performance.now();
-  const events: FillEvent[] = [];
-  for await (const event of fill(request, { adapter })) events.push(event);
-  const latency = Math.round(performance.now() - started);
+  const { events, firstItemMs, latencyMs } = await collectTimedFillEvents(
+    fill(request, { adapter }),
+  );
   if (record) writeReplay(model, resume, rawItems);
 
   const goldFields = loadGold()[resume].fields;
@@ -213,26 +235,38 @@ async function evaluate(
     questions: events.filter((event) => event.type === "question").length,
     flags: events.filter((event) => event.type === "flag").length,
     dropped: JSON.stringify(drops),
-    "latency ms": latency,
+    firstItemMs,
+    "latency ms": latencyMs,
     "tokens in": done?.usage?.inputTokens ?? 0,
     "tokens out": done?.usage?.outputTokens ?? 0,
   };
 }
 
 async function main(): Promise<void> {
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.warn(
+      "Skipping eval-fill: OPENROUTER_API_KEY is not set (no requests made).",
+    );
+    return;
+  }
+
   const options = parseArgs(process.argv.slice(2));
   const resumes = chooseResumes(options.resume);
   for (const model of options.models) {
-    const rows: EvaluationRow[] = [];
-    for (const resume of resumes) {
-      try {
-        rows.push(await evaluate(model, resume, options.record));
-      } catch (error) {
-        console.error(`${model} / ${resume}:`, error);
+    for (const effort of options.efforts) {
+      const rows: EvaluationRow[] = [];
+      for (const resume of resumes) {
+        try {
+          rows.push(await evaluate(model, effort, resume, options.record));
+        } catch (error) {
+          console.error(`${model} / ${resume}:`, error);
+        }
       }
+      const effortLabel =
+        effort === null ? "unset" : (effort ?? "adapter default");
+      console.log(`\nModel: ${model} (reasoning effort: ${effortLabel})`);
+      console.table(rows);
     }
-    console.log(`\nModel: ${model}`);
-    console.table(rows);
   }
 }
 

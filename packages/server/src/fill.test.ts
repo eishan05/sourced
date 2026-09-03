@@ -35,6 +35,27 @@ async function collect(events: AsyncIterable<FillEvent>): Promise<FillEvent[]> {
 }
 
 describe("fill", () => {
+  it("finishes an empty check without retrying or erroring", async () => {
+    let calls = 0;
+    const empty = createFakeAdapter([]);
+    const adapter: ModelAdapter = {
+      streamItems(input) {
+        calls += 1;
+        return empty.streamItems(input);
+      },
+    };
+
+    const events = await collect(
+      fill({ ...request(), mode: "check", currentValues: {} }, { adapter }),
+    );
+
+    expect(calls).toBe(1);
+    expect(events.map((event) => event.type)).toEqual(["start", "done"]);
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+  });
+
   it("runs check mode with current values and no target fields", async () => {
     let modelPrompt = "";
     let modelSystem = "";

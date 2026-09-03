@@ -37,6 +37,28 @@ function scalarValue(field: FieldApi): string {
     : String(field.value);
 }
 
+function suggestionLabel(field: FieldApi, value: FieldApi["value"]): string {
+  if (field.def.type === "boolean" && typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (field.def.type === "select" && typeof value === "string") {
+    return (
+      field.def.options?.find((option) => option.value === value)?.label ??
+      value
+    );
+  }
+  if (field.def.type === "multiselect" && Array.isArray(value)) {
+    return value
+      .map(
+        (item) =>
+          field.def.options?.find((option) => option.value === item)?.label ??
+          item,
+      )
+      .join(", ");
+  }
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
 function leftGroup(event: FocusEvent<HTMLElement>): boolean {
   return !(
     event.relatedTarget instanceof Node &&
@@ -225,7 +247,11 @@ export function KitField({ id, fieldId, className }: KitFieldProps) {
               </p>
             ) : null}
             <FieldControl field={field} labelId={labelId} />
-            <Ghost className="anf-ghost" fieldId={field.def.id} />
+            <Ghost
+              className="anf-ghost"
+              fieldId={field.def.id}
+              renderValue={(value) => suggestionLabel(field, value)}
+            />
             <AskBack className="anf-askback" fieldId={field.def.id} />
             <Normalization
               className="anf-normalization"
@@ -396,7 +422,10 @@ export function KitSourcePane({
       {children === undefined ? <KitDropZone /> : children}
       <div aria-live="polite" className="anf-fill-status" role="status">
         <span>Fill: {api.fill.status}</span>
-        <span>Check: {api.check.status}</span>
+        <span>
+          Check: {api.check.status}
+          {api.check.error ? " · Check could not run" : null}
+        </span>
         <span>
           {completed}/{visibleFields.length} filled
         </span>
