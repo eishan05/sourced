@@ -11,7 +11,7 @@ export function buildPrompt(
   const modeInstruction =
     req.mode === "check"
       ? "In check mode, emit only flag and question items about inconsistencies or suspicious current values."
-      : "Return one item per listed field, in the listed order. Skip nothing: use no_evidence when there is nothing to go on.";
+      : "Return one item per listed field, in order. Use no_evidence for optional fields with no evidence; ask for required fields with no evidence.";
   const strictReminder = opts.strictReminder
     ? "\nReturn only the JSON array. Do not add prose, markdown, or code fences."
     : "";
@@ -21,13 +21,14 @@ export function buildPrompt(
 "extracted" means the value appears verbatim in a source. Its quote must be the shortest source span containing the value, copied exactly with original punctuation and casing. "inferred" means anything derived or guessed; still include the best supporting verbatim quote when one exists. Never trust a claim without source text.
 
 ${modeInstruction}
-Ask a question only when two or more candidates exist or a required field is missing, with at most 5 questions per fill. Put inconsistency flags last; severity is "error" only for contradictions.
+Ask only when sources contain two or more candidates for a field, or a required field has no evidence. Emit at most 5 questions. Every option must include the candidate's verbatim quote and sourceId. Put inconsistency flags last; severity is "error" only for contradictions.
 
 Formats: dates YYYY-MM-DD (use the first of the month when only a month is known); booleans "true" or "false"; numbers as digits; select values must be option values; multiselect uses values containing option values. Today is ${req.today}.
 
 Examples:
 Source: "Email: ada@example.com" -> {"kind":"proposal","fieldId":"email","basis":"extracted","value":"ada@example.com","sourceId":"resume","quote":"ada@example.com"}
-Source: "Engineer, Jan 2020 - Present" -> {"kind":"proposal","fieldId":"currentlyEmployed","basis":"inferred","value":"true","sourceId":"resume","quote":"Present","rationale":"The current role ends in Present"}${strictReminder}`;
+Source: "Engineer, Jan 2020 - Present" -> {"kind":"proposal","fieldId":"currentlyEmployed","basis":"inferred","value":"true","sourceId":"resume","quote":"Present","rationale":"The current role ends in Present"}
+Source: "Acme Corp ... Acme Labs" -> {"kind":"question","fieldId":"employer","question":"Which is the employer?","options":[{"label":"Acme Corp","value":"Acme Corp","sourceId":"resume","quote":"Acme Corp"},{"label":"Acme Labs","value":"Acme Labs","sourceId":"resume","quote":"Acme Labs"}],"allowFreeText":true}${strictReminder}`;
 
   const fields = fieldsOf(req.form)
     .filter((field) => policyOf(field) !== "human")

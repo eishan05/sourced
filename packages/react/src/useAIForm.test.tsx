@@ -187,6 +187,68 @@ describe("useAIForm fill lifecycle", () => {
       },
     ]);
   });
+
+  it("blocks submission on a question and preserves its chosen option span", async () => {
+    const transport: FillTransport = async function* (request) {
+      const sourceId = request.sources[0]?.id ?? "missing";
+      const optionSpan = {
+        sourceId,
+        start: 0,
+        end: 5,
+        quote: "Priya",
+        match: "exact" as const,
+      };
+      yield { type: "start", fillId: "fill-question", targetFieldIds: [] };
+      yield {
+        type: "question",
+        question: {
+          id: "question-name",
+          fillId: "fill-question",
+          fieldId: "fullName",
+          text: "Which name should be used?",
+          options: [{ label: "Priya", value: "Priya Raman", span: optionSpan }],
+          allowFreeText: true,
+        },
+      };
+      yield {
+        type: "done",
+        fillId: "fill-question",
+        counts: { proposals: 0, questions: 1, flags: 0 },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+      }),
+    );
+    act(() => {
+      result.current.sources.addText("Priya Raman", "resume.txt");
+    });
+
+    await act(async () => result.current.fill.run());
+
+    expect(result.current.submit.blockers).toContainEqual({
+      reason: "unanswered",
+      fieldId: "fullName",
+    });
+    act(() => result.current.field("fullName").answer("Priya Raman", 0));
+
+    expect(result.current.submit.blockers).not.toContainEqual({
+      reason: "unanswered",
+      fieldId: "fullName",
+    });
+    expect(result.current.field("fullName").state).toMatchObject({
+      value: "Priya Raman",
+      provenance: {
+        kind: "answered",
+        questionId: "question-name",
+        span: { quote: "Priya" },
+      },
+      question: null,
+    });
+  });
 });
 
 describe("field input props", () => {

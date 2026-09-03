@@ -55,6 +55,22 @@ describe("coerceItem", () => {
     });
   });
 
+  it("formats a US phone number", () => {
+    const result = coerceItem(
+      {
+        kind: "proposal",
+        fieldId: "phone",
+        basis: "extracted",
+        raw: "4155550101",
+      },
+      makeContext(),
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      value: { value: "+1 (415) 555-0101" },
+    });
+  });
+
   it("drops values the normalizer cannot read", () => {
     expect(
       coerceItem(

@@ -4,7 +4,6 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useState,
 } from "react";
 
 import type { AIFormApi } from "./useAIForm";
@@ -24,7 +23,8 @@ export function useReviewKeyboard(
 ): ReviewKeyboardState {
   const enabled = options.enabled ?? true;
   const apiRef = useRef(api);
-  const [highlightedOption, setHighlightedOptionState] = useState(0);
+  const { highlightedOption, setHighlightedOption: setSharedHighlight } =
+    api.review;
   const highlightedOptionRef = useRef(highlightedOption);
   apiRef.current = api;
   highlightedOptionRef.current = highlightedOption;
@@ -34,9 +34,9 @@ export function useReviewKeyboard(
       const value =
         typeof next === "function" ? next(highlightedOptionRef.current) : next;
       highlightedOptionRef.current = value;
-      setHighlightedOptionState(value);
+      setSharedHighlight(value);
     },
-    [],
+    [setSharedHighlight],
   );
 
   useEffect(() => {

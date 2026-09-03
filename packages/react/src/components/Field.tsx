@@ -1,3 +1,4 @@
+import { policyOf } from "@ai-native-forms/core";
 import type { ReactNode } from "react";
 
 import { useAIFormApi } from "../context";
@@ -21,6 +22,7 @@ export function Field({ id, children, className }: FieldProps) {
           : undefined
       }
       data-field={id}
+      data-policy={policyOf(field.def)}
       data-provenance={field.state.provenance?.kind}
       data-status={field.status}
     >

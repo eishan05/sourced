@@ -114,3 +114,47 @@ it.skipIf(!process.env.OPENROUTER_API_KEY)(
   },
   120_000,
 );
+
+it.skipIf(!process.env.OPENROUTER_API_KEY)(
+  "asks about ambiguity in Marcus or extracts Acme Corp as employer",
+  async () => {
+    const source = createSource({
+      id: "marcus",
+      name: "Marcus Oyelaran resume",
+      kind: "paste",
+      text: loadResume("marcus-oyelaran.txt"),
+    });
+    const request: FillRequest = {
+      form: serializeForm(jobApplicationForm),
+      sources: [source],
+      mode: "fill",
+      today: new Date().toISOString().slice(0, 10),
+    };
+    const events: FillEvent[] = [];
+    for await (const event of fill(request, {
+      adapter: createOpenRouterAdapter({ model }),
+    })) {
+      events.push(event);
+    }
+
+    const questions = events.filter((event) => event.type === "question");
+    const employer = events.find(
+      (event) =>
+        event.type === "proposal" && event.proposal.fieldId === "employer",
+    );
+    console.log({
+      model,
+      marcusOutcome:
+        questions.length > 0
+          ? `${questions.length} question(s)`
+          : `employer: ${employer?.type === "proposal" ? employer.proposal.value : "missing"}`,
+    });
+
+    expect(
+      questions.length > 0 ||
+        (employer?.type === "proposal" &&
+          employer.proposal.value === "Acme Corp"),
+    ).toBe(true);
+  },
+  120_000,
+);

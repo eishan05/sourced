@@ -1,4 +1,4 @@
-import type { FieldValue } from "@ai-native-forms/core";
+import { type FieldValue, policyOf } from "@ai-native-forms/core";
 import type { ReactNode } from "react";
 
 import { useField } from "../context";
@@ -16,7 +16,9 @@ function displayValue(value: FieldValue) {
 export function Ghost({ fieldId, className, renderValue }: GhostProps) {
   const field = useField(fieldId);
   const suggestion = field.state.suggestion;
-  if (!suggestion || field.value !== null) return null;
+  if (policyOf(field.def) === "human" || !suggestion || field.value !== null) {
+    return null;
+  }
 
   return (
     <div className={className} data-ghost>

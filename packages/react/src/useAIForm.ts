@@ -29,6 +29,8 @@ import {
   values,
 } from "@ai-native-forms/core";
 import {
+  type Dispatch,
+  type SetStateAction,
   useCallback,
   useEffect,
   useMemo,
@@ -95,6 +97,7 @@ export interface FieldApi {
 }
 
 export interface AIFormApi {
+  today: string;
   state: FormState;
   dispatch: (event: FormEvent) => void;
   registerInput(fieldId: string, element: HTMLElement | null): void;
@@ -126,6 +129,8 @@ export interface AIFormApi {
   review: {
     active: boolean;
     cursorFieldId: string | null;
+    highlightedOption: number;
+    setHighlightedOption: Dispatch<SetStateAction<number>>;
     order: string[];
     remaining: string[];
     progress: { index: number; total: number };
@@ -235,6 +240,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   onSubmitRef.current = options.onSubmit;
 
   const [activeSpan, setActiveSpan] = useState<Span | null>(null);
+  const [highlightedOption, setHighlightedOption] = useState(0);
   const [dropped, setDropped] = useState<
     Array<{ fieldId?: string; reason: string; detail?: string }>
   >([]);
@@ -581,6 +587,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
       : undefined;
 
     return {
+      today: todayRef.current,
       state,
       dispatch: store.dispatch,
       registerInput,
@@ -617,6 +624,8 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
       review: {
         active: state.review.active,
         cursorFieldId: reviewCursorFieldId(state),
+        highlightedOption,
+        setHighlightedOption,
         order: state.review.order,
         remaining: state.review.order.slice(state.review.cursor),
         progress: {
@@ -663,6 +672,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     clearActiveSpan,
     dropped,
     focusSpan,
+    highlightedOption,
     registerInput,
     removeSource,
     requestSubmit,

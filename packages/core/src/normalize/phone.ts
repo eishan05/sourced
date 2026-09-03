@@ -8,8 +8,12 @@ export function normalizePhone(
     return null;
   }
 
-  if ((opts.defaultCountry ?? "US") === "US" && digits.length === 10) {
-    return `+1 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if ((opts.defaultCountry ?? "US") === "US") {
+    const localDigits =
+      digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+    if (localDigits.length === 10) {
+      return `+1 (${localDigits.slice(0, 3)}) ${localDigits.slice(3, 6)}-${localDigits.slice(6)}`;
+    }
   }
 
   return input.startsWith("+") ? `+${digits}` : digits;

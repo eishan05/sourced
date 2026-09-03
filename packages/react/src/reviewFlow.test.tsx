@@ -9,6 +9,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { AskBack } from "./components/AskBack";
 import { Field } from "./components/Field";
 import { ReviewBar } from "./components/ReviewBar";
 import { SubmitSummary } from "./components/SubmitSummary";
@@ -117,7 +118,7 @@ function Harness({ expose, confirmClear, children }: HarnessProps) {
     transport: reviewTransport,
     autoFillOnSource: false,
   });
-  const keyboard = useReviewKeyboard(api);
+  useReviewKeyboard(api);
   expose(api);
 
   const fill = (): void => {
@@ -142,21 +143,7 @@ function Harness({ expose, confirmClear, children }: HarnessProps) {
             <div>
               <label htmlFor={field.def.id}>{field.def.label}</label>
               <input {...field.inputProps} />
-              {field.state.question?.options.map((option, index) => (
-                <button
-                  data-highlighted={
-                    api.review.cursorFieldId === field.def.id &&
-                    keyboard.highlightedOption === index
-                      ? "true"
-                      : undefined
-                  }
-                  key={option.label}
-                  onClick={() => field.answer(option.value, index)}
-                  type="button"
-                >
-                  {option.label}
-                </button>
-              ))}
+              <AskBack fieldId={field.def.id} />
             </div>
           )}
         </Field>
@@ -238,7 +225,12 @@ describe("review keyboard flow", () => {
     });
     expect(harness.api().review.cursorFieldId).toBe("authorization");
 
-    await user.keyboard("{ArrowRight}{Enter}");
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("button", { name: "Sponsorship" })).toHaveAttribute(
+      "data-highlighted",
+      "true",
+    );
+    await user.keyboard("{Enter}");
     expect(harness.api().field("authorization").state).toMatchObject({
       value: "sponsorship",
       reviewStatus: "accepted",

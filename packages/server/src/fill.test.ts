@@ -87,6 +87,80 @@ describe("fill", () => {
     expect(events[1]).toMatchObject({ reason: "malformed" });
   });
 
+  it("keeps Priya's normalized phone extracted and formats it", async () => {
+    const events = await collect(
+      fill(request(), {
+        adapter: createFakeAdapter([
+          {
+            kind: "proposal",
+            fieldId: "phone",
+            basis: "extracted",
+            value: "+14155550101",
+            sourceId: "priya",
+            quote: "+1 (415) 555-0101",
+          },
+        ]),
+      }),
+    );
+
+    expect(events.find((event) => event.type === "proposal")).toMatchObject({
+      type: "proposal",
+      proposal: {
+        fieldId: "phone",
+        kind: "extracted",
+        value: "+1 (415) 555-0101",
+        span: { quote: "+1 (415) 555-0101" },
+      },
+    });
+    expect(events.some((event) => event.type === "question")).toBe(false);
+  });
+
+  it("locates every quoted option emitted by the model", async () => {
+    const events = await collect(
+      fill(request(), {
+        adapter: createFakeAdapter([
+          {
+            kind: "question",
+            fieldId: "employer",
+            question: "Which is your current employer?",
+            options: [
+              {
+                label: "Lumen Orchard Systems",
+                value: "Lumen Orchard Systems",
+                sourceId: "priya",
+                quote: "Lumen Orchard Systems",
+              },
+              {
+                label: "Pebble Arc Software",
+                value: "Pebble Arc Software",
+                sourceId: "priya",
+                quote: "Pebble Arc Software",
+              },
+            ],
+            allowFreeText: true,
+          },
+        ]),
+      }),
+    );
+
+    const question = events.find((event) => event.type === "question");
+    expect(question).toMatchObject({
+      type: "question",
+      question: {
+        options: [
+          {
+            label: "Lumen Orchard Systems",
+            span: { sourceId: "priya", quote: "Lumen Orchard Systems" },
+          },
+          {
+            label: "Pebble Arc Software",
+            span: { sourceId: "priya", quote: "Pebble Arc Software" },
+          },
+        ],
+      },
+    });
+  });
+
   it("yields a mid-stream adapter error and stops", async () => {
     const events = await collect(
       fill(request(), {

@@ -62,6 +62,9 @@ describe("normalizePhone", () => {
     expect(normalizePhone("555-010-1234", { defaultCountry: "US" })).toBe(
       "+1 (555) 010-1234",
     );
+    expect(normalizePhone("+15550101234", { defaultCountry: "US" })).toBe(
+      "+1 (555) 010-1234",
+    );
   });
 
   it("returns other lengths as digits while preserving an initial plus", () => {

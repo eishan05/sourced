@@ -1,5 +1,7 @@
 import {
   type FieldValue,
+  type NormalizedValue,
+  normalizePhone,
   normalizeValue,
   validateField,
 } from "@ai-native-forms/core";
@@ -50,7 +52,13 @@ export function coerceItem(
 
   if (item.kind === "proposal") {
     const raw = Array.isArray(item.raw) ? item.raw.join(", ") : item.raw;
-    const normalized = normalizeValue(field, raw, { today: context.today });
+    let normalized: NormalizedValue | null;
+    if (field.type === "phone") {
+      const value = normalizePhone(raw, { defaultCountry: "US" });
+      normalized = value === null ? null : { value };
+    } else {
+      normalized = normalizeValue(field, raw, { today: context.today });
+    }
     if (!normalized) {
       return invalidValue(context, item.fieldId);
     }

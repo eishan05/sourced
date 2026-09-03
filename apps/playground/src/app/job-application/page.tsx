@@ -5,6 +5,7 @@ import { createFetchTransport } from "@ai-native-forms/core";
 import { jobApplicationForm } from "@ai-native-forms/examples/forms";
 import {
   AIFormProvider,
+  AskBack,
   DropZone,
   Field,
   type FieldApi,
@@ -18,7 +19,7 @@ import {
   useAIForm,
   useReviewKeyboard,
 } from "@ai-native-forms/react";
-import { type Dispatch, type SetStateAction, useState } from "react";
+import { useState } from "react";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
 
@@ -116,20 +117,10 @@ function FieldControl({ field }: { field: FieldApi }) {
   }
 }
 
-interface FormFieldProps {
-  fieldId: string;
-  highlightedOption: number;
-  setHighlightedOption: Dispatch<SetStateAction<number>>;
-}
-
-function FormField({
-  fieldId,
-  highlightedOption,
-  setHighlightedOption,
-}: FormFieldProps) {
+function FormField({ fieldId }: { fieldId: string }) {
   return (
     <Field
-      className="border-b border-zinc-200 py-5 transition-[background-color,box-shadow,padding] data-[cursor=true]:bg-orange-50 data-[cursor=true]:px-3 data-[cursor=true]:ring-2 data-[cursor=true]:ring-orange-400 data-[cursor=true]:ring-offset-2 data-[status=ai-pending]:bg-amber-50 data-[status=ai-pending]:px-3"
+      className="border-b border-zinc-200 py-5 transition-[background-color,box-shadow,padding] data-[cursor=true]:bg-orange-50 data-[cursor=true]:px-3 data-[cursor=true]:ring-2 data-[cursor=true]:ring-orange-400 data-[cursor=true]:ring-offset-2 data-[provenance=answered]:px-3 data-[provenance=answered]:outline-2 data-[provenance=answered]:outline-offset-[-2px] data-[provenance=answered]:outline-dashed data-[provenance=answered]:outline-amber-500 data-[provenance=extracted]:bg-amber-50 data-[provenance=extracted]:px-3 data-[provenance=inferred]:px-3 data-[provenance=inferred]:outline-2 data-[provenance=inferred]:outline-offset-[-2px] data-[provenance=inferred]:outline-dashed data-[provenance=inferred]:outline-amber-500"
       id={fieldId}
     >
       {(field) => (
@@ -180,31 +171,10 @@ function FormField({
             className="mt-2 list-disc pl-5 text-sm text-red-700"
             fieldId={field.def.id}
           />
-          {field.state.question ? (
-            <div
-              className="mt-3 border-l-2 border-zinc-900 pl-3 text-sm"
-              id={`${field.def.id}-question`}
-            >
-              <p className="font-medium">{field.state.question.text}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {field.state.question.options.map((option, index) => (
-                  <button
-                    className="border border-zinc-300 px-2 py-1 hover:border-zinc-900 data-[highlighted=true]:border-zinc-950 data-[highlighted=true]:bg-zinc-950 data-[highlighted=true]:text-white"
-                    data-highlighted={
-                      highlightedOption === index ? "true" : undefined
-                    }
-                    key={`${option.label}-${JSON.stringify(option.value)}`}
-                    onClick={() => field.answer(option.value, index)}
-                    onFocus={() => setHighlightedOption(index)}
-                    onMouseEnter={() => setHighlightedOption(index)}
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <AskBack
+            className="mt-3 border-l-2 border-zinc-900 pl-3 text-sm [&>div]:mt-2 [&>div]:flex [&>div]:flex-wrap [&>div]:items-center [&>div]:gap-2 [&>p]:font-medium [&_[data-error]]:block [&_[data-error]]:text-red-700 [&_[data-normalization]]:block [&_[data-normalization]]:text-zinc-500 [&_[data-option]]:border [&_[data-option]]:border-zinc-300 [&_[data-option]]:px-2 [&_[data-option]]:py-1 [&_[data-option]:hover]:border-zinc-900 [&_[data-option][data-highlighted=true]]:border-zinc-950 [&_[data-option][data-highlighted=true]]:bg-zinc-950 [&_[data-option][data-highlighted=true]]:text-white [&_input]:border [&_input]:border-zinc-300 [&_input]:px-2 [&_input]:py-1 [&_input]:outline-none [&_input:focus]:border-zinc-950 [&_input+button]:border [&_input+button]:border-zinc-900 [&_input+button]:px-2 [&_input+button]:py-1 [&_input+button]:font-medium"
+            fieldId={field.def.id}
+          />
         </>
       )}
     </Field>
@@ -222,7 +192,7 @@ function JobApplicationWorkspace() {
     transport,
     onSubmit: (values) => setSubmittedValues(values),
   });
-  const { highlightedOption, setHighlightedOption } = useReviewKeyboard(api);
+  useReviewKeyboard(api);
   const visibleFields = Object.values(api.fields).filter(
     (field) => field.visible,
   );
@@ -370,13 +340,7 @@ function JobApplicationWorkspace() {
                         .map((field) => (
                           <FormField
                             fieldId={field.def.id}
-                            highlightedOption={
-                              api.review.cursorFieldId === field.def.id
-                                ? highlightedOption
-                                : -1
-                            }
                             key={field.def.id}
-                            setHighlightedOption={setHighlightedOption}
                           />
                         ))}
                     </section>

@@ -8,6 +8,22 @@ import type { PipelineContext } from "./types";
 
 export const testFields: SerializedFieldDefinition[] = [
   { id: "name", type: "text", label: "Name" },
+  { id: "email", type: "email", label: "Email" },
+  { id: "phone", type: "phone", label: "Phone" },
+  {
+    id: "employed",
+    type: "boolean",
+    label: "Currently employed",
+  },
+  {
+    id: "workMode",
+    type: "select",
+    label: "Work mode",
+    options: [
+      { value: "remote", label: "Remote" },
+      { value: "office", label: "In office" },
+    ],
+  },
   { id: "bio", type: "textarea", label: "Bio", policy: "infer" },
   { id: "start", type: "date", label: "Start date", policy: "infer" },
   {

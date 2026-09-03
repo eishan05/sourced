@@ -1,3 +1,5 @@
+import { policyOf } from "@ai-native-forms/core";
+
 import { useField } from "../context";
 
 export interface ProvenanceChipProps {
@@ -6,7 +8,15 @@ export interface ProvenanceChipProps {
 }
 
 export function ProvenanceChip({ fieldId, className }: ProvenanceChipProps) {
-  const { chip } = useField(fieldId);
+  const field = useField(fieldId);
+  const { chip } = field;
+  if (
+    policyOf(field.def) === "human" &&
+    chip.kind &&
+    ["extracted", "inferred", "answered"].includes(chip.kind)
+  ) {
+    return null;
+  }
   if (!chip.label || !chip.kind) return null;
 
   return (

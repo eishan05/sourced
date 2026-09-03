@@ -26,6 +26,10 @@ describe("buildPrompt", () => {
     expect(result.prompt).toContain('"fullName"');
     expect(result.prompt).not.toContain('"workAuthorization"');
     expect(result.system).toContain("Today is 2026-09-03");
+    expect(result.system).toContain(
+      "Every option must include the candidate's verbatim quote and sourceId",
+    );
+    expect(result.system).toContain('"kind":"question"');
   });
 
   it("adds current values and check-mode instructions", () => {
