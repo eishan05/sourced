@@ -20,6 +20,8 @@
     "lint": "biome check ."
   },
   "dependencies": {
+    "chrono-node": "^2.10.1",
+    "fastest-levenshtein": "^1.0.16",
     "zod": "4.1.12"
   },
   "devDependencies": {
