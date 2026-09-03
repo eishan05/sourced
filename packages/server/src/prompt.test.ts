@@ -1,0 +1,40 @@
+import { type FillRequest, serializeForm } from "@ai-native-forms/core";
+import { jobApplicationForm } from "@ai-native-forms/examples";
+import { describe, expect, it } from "vitest";
+
+import { buildPrompt } from "./prompt";
+
+const request: FillRequest = {
+  form: serializeForm(jobApplicationForm),
+  sources: [
+    {
+      id: "resume",
+      name: "Resume",
+      kind: "paste",
+      text: "Priya Raman",
+      addedAt: 0,
+    },
+  ],
+  mode: "fill",
+  today: "2026-09-03",
+};
+
+describe("buildPrompt", () => {
+  it("excludes human fields and includes the source verbatim", () => {
+    const result = buildPrompt(request);
+    expect(result.prompt).toContain("Priya Raman");
+    expect(result.prompt).toContain('"fullName"');
+    expect(result.prompt).not.toContain('"workAuthorization"');
+    expect(result.system).toContain("Today is 2026-09-03");
+  });
+
+  it("adds current values and check-mode instructions", () => {
+    const result = buildPrompt({
+      ...request,
+      mode: "check",
+      currentValues: { fullName: "P. Raman" },
+    });
+    expect(result.prompt).toContain("<current_values>");
+    expect(result.system).toContain("emit only flag and question");
+  });
+});
