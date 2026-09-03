@@ -22,11 +22,13 @@ import { type AIFormApi, useAIForm } from "../useAIForm";
 import { AskBack } from "./AskBack";
 import { DropZone } from "./DropZone";
 import { Field } from "./Field";
+import { Flags } from "./Flags";
 import { Ghost } from "./Ghost";
 import { HumanOnlyNote } from "./HumanOnlyNote";
 import { Issues } from "./Issues";
 import { Normalization } from "./Normalization";
 import { ProvenanceChip } from "./ProvenanceChip";
+import { ReviewBar } from "./ReviewBar";
 import { SourcePane } from "./SourcePane";
 
 const idleTransport: FillTransport = async function* () {};
@@ -399,6 +401,151 @@ describe("SourcePane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(container.querySelector('[data-source-id="pdf-source"]')).toBeNull();
     expect(api.sources.list).toEqual([]);
+  });
+
+  it("maps a selection across a mark to exact source offsets and provenance", () => {
+    let api: AIFormApi | undefined;
+    const { container } = render(
+      <Harness>
+        {(value) => {
+          api = value;
+          return (
+            <>
+              <SourcePane />
+              <ProvenanceChip fieldId="location" />
+            </>
+          );
+        }}
+      </Harness>,
+    );
+    if (!api) throw new Error("Harness did not expose the API");
+    const source = api.sources.addText("alpha beta gamma", "resume.txt");
+    act(() => {
+      api?.dispatch({
+        type: "FILL_STARTED",
+        fillId: "fill-selection",
+        sourceIds: [source.id],
+      });
+      api?.dispatch({
+        type: "PROPOSAL_RECEIVED",
+        proposal: {
+          id: "p-highlight",
+          fillId: "fill-selection",
+          fieldId: "fullName",
+          kind: "extracted",
+          value: "beta",
+          span: { ...span(source.id, 6, 10), quote: "beta" },
+        },
+      });
+    });
+
+    const sourceText =
+      container.querySelector<HTMLElement>("[data-source-text]");
+    const plainText = sourceText?.firstChild;
+    const markedText = sourceText?.querySelector("mark")?.firstChild;
+    if (!sourceText || !plainText || !markedText) {
+      throw new Error("Expected source text around a mark");
+    }
+    const range = document.createRange();
+    range.setStart(plainText, 3);
+    range.setEnd(markedText, 2);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    fireEvent.mouseUp(sourceText);
+
+    expect(api.sources.selection).toEqual({
+      sourceId: source.id,
+      start: 3,
+      end: 8,
+      quote: "ha be",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Location" }));
+
+    expect(api.field("location").state).toMatchObject({
+      value: "ha be",
+      provenance: {
+        kind: "user",
+        span: {
+          sourceId: source.id,
+          start: 3,
+          end: 8,
+          quote: "ha be",
+          match: "exact",
+        },
+      },
+    });
+    expect(
+      screen.getByRole("button", { name: "from resume.txt" }),
+    ).toBeVisible();
+  });
+});
+
+describe("Flags", () => {
+  it("renders once at the first affected field and acknowledges errors", () => {
+    let api: AIFormApi | undefined;
+    render(
+      <Harness>
+        {(value) => {
+          api = value;
+          return (
+            <>
+              <ReviewBar />
+              <div data-testid="start-flags">
+                <Flags fieldId="startDate" />
+              </div>
+              <div data-testid="grad-flags">
+                <Flags fieldId="gradYear" />
+              </div>
+              <div data-testid="all-flags">
+                <Flags />
+              </div>
+              <input {...value.field("gradYear").inputProps} />
+            </>
+          );
+        }}
+      </Harness>,
+    );
+    if (!api) throw new Error("Harness did not expose the API");
+
+    act(() => {
+      api?.dispatch({
+        type: "FILL_STARTED",
+        fillId: "check-flags",
+        sourceIds: [],
+      });
+      api?.dispatch({
+        type: "FLAG_RECEIVED",
+        flag: {
+          id: "flag-dates",
+          fillId: "check-flags",
+          fieldIds: ["gradYear", "startDate"],
+          message: "The dates conflict.",
+          severity: "error",
+        },
+      });
+    });
+
+    expect(screen.getByTestId("start-flags")).toBeEmptyDOMElement();
+    expect(
+      within(screen.getByTestId("grad-flags")).getByText("The dates conflict."),
+    ).toBeVisible();
+    expect(screen.getByText("1 open error flag")).toBeVisible();
+
+    fireEvent.click(
+      within(screen.getByTestId("all-flags")).getByRole("button", {
+        name: "Graduation year",
+      }),
+    );
+    expect(screen.getByRole("textbox")).toHaveFocus();
+
+    fireEvent.click(
+      within(screen.getByTestId("all-flags")).getByRole("button", {
+        name: "Acknowledge",
+      }),
+    );
+    expect(api.flags.openErrorCount).toBe(0);
+    expect(screen.queryByText("1 open error flag")).not.toBeInTheDocument();
   });
 });
 

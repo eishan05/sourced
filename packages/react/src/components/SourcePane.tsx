@@ -1,4 +1,8 @@
-import type { SourceHighlight } from "@ai-native-forms/core";
+import {
+  normalizeValue,
+  policyOf,
+  type SourceHighlight,
+} from "@ai-native-forms/core";
 import { type ReactNode, useEffect, useRef } from "react";
 
 import { useAIFormApi } from "../context";
@@ -7,6 +11,21 @@ export interface SourcePaneProps {
   sourceId?: string;
   className?: string;
 }
+
+export interface UseForMenuProps {
+  sourceId?: string;
+  className?: string;
+}
+
+const SELECTION_FIELD_TYPES = new Set([
+  "text",
+  "textarea",
+  "email",
+  "phone",
+  "date",
+  "number",
+]);
+const TEXT_LIKE_FIELD_TYPES = new Set(["text", "textarea", "email"]);
 
 const KIND_PRIORITY: Record<SourceHighlight["kind"], number> = {
   extracted: 0,
@@ -93,6 +112,97 @@ function sourceSegments(
   return nodes;
 }
 
+function closestElement(node: Node | null): Element | null {
+  return node instanceof Element ? node : (node?.parentElement ?? null);
+}
+
+function sourceTextLength(root: Node): number {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let length = 0;
+  let node = walker.nextNode();
+  while (node) {
+    const parent = node.parentElement;
+    if (!parent?.closest("[data-page]")) {
+      length += node.textContent?.length ?? 0;
+    }
+    node = walker.nextNode();
+  }
+  return length;
+}
+
+function sourceOffset(
+  root: HTMLElement,
+  container: Node,
+  offset: number,
+): number | null {
+  if (container !== root && !root.contains(container)) return null;
+  const prefix = document.createRange();
+  prefix.selectNodeContents(root);
+  try {
+    prefix.setEnd(container, offset);
+  } catch {
+    return null;
+  }
+  return sourceTextLength(prefix.cloneContents());
+}
+
+export function UseForMenu({ sourceId, className }: UseForMenuProps) {
+  const api = useAIFormApi();
+  const selection = api.sources.selection;
+  const visible = Boolean(
+    selection && (!sourceId || selection.sourceId === sourceId),
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    const close = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      api.sources.setSelection(null);
+      window.getSelection()?.removeAllRanges();
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [api.sources, visible]);
+
+  if (!selection || !visible) return null;
+
+  const eligibleFields = Object.values(api.fields).filter(
+    (field) =>
+      field.visible &&
+      policyOf(field.def) !== "human" &&
+      SELECTION_FIELD_TYPES.has(field.def.type),
+  );
+  const choose = (fieldId: string): void => {
+    const field = api.field(fieldId);
+    const normalized = normalizeValue(field.def, selection.quote, {
+      today: api.today,
+    });
+    const value = TEXT_LIKE_FIELD_TYPES.has(field.def.type)
+      ? selection.quote
+      : (normalized?.value ?? selection.quote);
+    const applySelectedValue = field.useSelection;
+    applySelectedValue(value, { ...selection, match: "exact" });
+    api.sources.setSelection(null);
+    window.getSelection()?.removeAllRanges();
+    field.focus();
+  };
+
+  return (
+    <div className={className} data-use-for-menu>
+      <p>Use selection for</p>
+      <ul>
+        {eligibleFields.map((field) => (
+          <li key={field.def.id}>
+            <button onClick={() => choose(field.def.id)} type="button">
+              {field.def.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function SourcePane({ sourceId, className }: SourcePaneProps) {
   const api = useAIFormApi();
   const rootRef = useRef<HTMLUListElement>(null);
@@ -108,8 +218,56 @@ export function SourcePane({ sourceId, className }: SourcePaneProps) {
     activeMark?.scrollIntoView?.({ block: "center" });
   }, [api.sources.activeSpan]);
 
+  const captureSelection = (): void => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      api.sources.setSelection(null);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const startPre = closestElement(range.startContainer)?.closest<HTMLElement>(
+      "pre[data-source-text]",
+    );
+    const endPre = closestElement(range.endContainer)?.closest<HTMLElement>(
+      "pre[data-source-text]",
+    );
+    if (
+      !startPre ||
+      startPre !== endPre ||
+      !rootRef.current?.contains(startPre)
+    ) {
+      api.sources.setSelection(null);
+      return;
+    }
+    const sourceElement = startPre.closest<HTMLElement>("[data-source-id]");
+    const selectedSourceId = sourceElement?.dataset.sourceId;
+    const source = api.sources.list.find(
+      (candidate) => candidate.id === selectedSourceId,
+    );
+    const start = sourceOffset(
+      startPre,
+      range.startContainer,
+      range.startOffset,
+    );
+    const end = sourceOffset(startPre, range.endContainer, range.endOffset);
+    if (!source || start === null || end === null || end <= start) {
+      api.sources.setSelection(null);
+      return;
+    }
+    const quote = source.text.slice(start, end);
+    api.sources.setSelection({ sourceId: source.id, start, end, quote });
+  };
+
   return (
-    <ul className={className} data-source-pane ref={rootRef}>
+    <ul
+      className={className}
+      data-source-pane
+      onKeyUp={(event) => {
+        if (event.key !== "Escape") captureSelection();
+      }}
+      onMouseUp={captureSelection}
+      ref={rootRef}
+    >
       {sources.map((source) => (
         <li
           data-source-id={source.id}
@@ -130,6 +288,7 @@ export function SourcePane({ sourceId, className }: SourcePaneProps) {
               source.pageOffsets,
             )}
           </pre>
+          <UseForMenu sourceId={source.id} />
         </li>
       ))}
     </ul>

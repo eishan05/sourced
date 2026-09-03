@@ -68,9 +68,12 @@ export async function* fill(
   const idGen = opts.idGen ?? (() => crypto.randomUUID());
   const fillId = idGen();
   const fields = fieldsOf(req.form);
-  const targetFieldIds = fields
-    .filter((field) => policyOf(field) !== "human")
-    .map((field) => field.id);
+  const targetFieldIds =
+    req.mode === "check"
+      ? []
+      : fields
+          .filter((field) => policyOf(field) !== "human")
+          .map((field) => field.id);
   yield { type: "start", fillId, targetFieldIds };
 
   const limitError = sourceLimitMessage(

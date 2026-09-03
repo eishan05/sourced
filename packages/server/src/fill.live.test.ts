@@ -158,3 +158,43 @@ it.skipIf(!process.env.OPENROUTER_API_KEY)(
   },
   120_000,
 );
+
+it.skipIf(!process.env.OPENROUTER_API_KEY)(
+  "checks Lena's current values for a start-date/graduation conflict",
+  async () => {
+    const source = createSource({
+      id: "lena",
+      name: "Lena Fischer resume",
+      kind: "paste",
+      text: loadResume("lena-fischer.txt"),
+    });
+    const request: FillRequest = {
+      form: serializeForm(jobApplicationForm),
+      sources: [source],
+      mode: "check",
+      currentValues: {
+        startDate: "2016-01-01",
+        gradYear: 2019,
+      },
+      today: new Date().toISOString().slice(0, 10),
+    };
+    const events: FillEvent[] = [];
+    for await (const event of fill(request, {
+      adapter: createOpenRouterAdapter({ model }),
+    })) {
+      events.push(event);
+    }
+
+    const conflict = events.find(
+      (event) =>
+        event.type === "flag" &&
+        event.flag.fieldIds.includes("startDate") &&
+        event.flag.fieldIds.includes("gradYear"),
+    );
+    // This live case is observational because model behavior is nondeterministic;
+    // the fake-adapter test above owns the strict cross-field assertion.
+    console.log({ model, lenaCheckFlag: conflict ?? "not emitted" });
+    expect(events.at(-1)?.type).toBe("done");
+  },
+  120_000,
+);

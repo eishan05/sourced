@@ -30,7 +30,8 @@ Formats: dates YYYY-MM-DD (use the first of the month when only a month is known
 Examples:
 Source: "Email: ada@example.com" -> {"kind":"proposal","fieldId":"email","basis":"extracted","value":"ada@example.com","sourceId":"resume","quote":"ada@example.com"}
 Source: "Engineer, Jan 2020 - Present" -> {"kind":"proposal","fieldId":"currentlyEmployed","basis":"inferred","value":"true","sourceId":"resume","quote":"Present","rationale":"The current role ends in Present"}
-Source: "Acme Corp ... Acme Labs" -> {"kind":"question","fieldId":"employer","question":"Which is the employer?","options":[{"label":"Acme Corp","value":"Acme Corp","sourceId":"resume","quote":"Acme Corp"},{"label":"Acme Labs","value":"Acme Labs","sourceId":"resume","quote":"Acme Labs"}],"allowFreeText":true}${strictReminder}`;
+Source: "Acme Corp ... Acme Labs" -> {"kind":"question","fieldId":"employer","question":"Which is the employer?","options":[{"label":"Acme Corp","value":"Acme Corp","sourceId":"resume","quote":"Acme Corp"},{"label":"Acme Labs","value":"Acme Labs","sourceId":"resume","quote":"Acme Labs"}],"allowFreeText":true}
+Current values: {"startDate":"2016-01-01","gradYear":2019} -> {"kind":"flag","fieldIds":["startDate","gradYear"],"message":"The employment start date is before the graduation year. Is that right?","severity":"error"}${strictReminder}`;
 
   const fields = fieldsOf(req.form)
     .filter((field) => policyOf(field) !== "human")

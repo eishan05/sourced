@@ -10,6 +10,7 @@ import {
   DropZone,
   Field,
   type FieldApi,
+  Flags,
   Ghost,
   HiddenSection,
   HumanOnlyNote,
@@ -203,6 +204,10 @@ function FormField({ fieldId }: { fieldId: string }) {
             className="mt-2 list-disc pl-5 text-sm [&_li[data-severity=error]]:text-red-700 [&_li[data-severity=warning]]:text-amber-700"
             fieldId={field.def.id}
           />
+          <Flags
+            className="mt-3 space-y-3 border-l-2 border-zinc-300 pl-3 text-sm [&_[data-acknowledge-flag]]:font-semibold [&_[data-acknowledge-flag]]:underline [&_[data-flag-fields]]:flex [&_[data-flag-fields]]:flex-wrap [&_[data-flag-fields]]:gap-2 [&_[data-flag-fields]_button]:text-xs [&_[data-flag-fields]_button]:font-medium [&_[data-flag-fields]_button]:underline [&_[data-flag-severity]]:font-mono [&_[data-flag-severity]]:text-[10px] [&_[data-flag-severity]]:font-semibold [&_[data-flag-severity]]:tracking-wider [&_[data-flag-severity]]:uppercase [&_li]:space-y-2 [&_li[data-acknowledged=true]]:opacity-60 [&_li[data-severity=error]_[data-flag-severity]]:text-red-700 [&_li[data-severity=warning]_[data-flag-severity]]:text-amber-700"
+            fieldId={field.def.id}
+          />
           <AskBack
             className="mt-3 border-l-2 border-zinc-900 pl-3 text-sm [&>div]:mt-2 [&>div]:flex [&>div]:flex-wrap [&>div]:items-center [&>div]:gap-2 [&>p]:font-medium [&_[data-error]]:block [&_[data-error]]:text-red-700 [&_[data-normalization]]:block [&_[data-normalization]]:text-zinc-500 [&_[data-option]]:border [&_[data-option]]:border-zinc-300 [&_[data-option]]:px-2 [&_[data-option]]:py-1 [&_[data-option]:hover]:border-zinc-900 [&_[data-option][data-highlighted=true]]:border-zinc-950 [&_[data-option][data-highlighted=true]]:bg-zinc-950 [&_[data-option][data-highlighted=true]]:text-white [&_input]:border [&_input]:border-zinc-300 [&_input]:px-2 [&_input]:py-1 [&_input]:outline-none [&_input:focus]:border-zinc-950 [&_input+button]:border [&_input+button]:border-zinc-900 [&_input+button]:px-2 [&_input+button]:py-1 [&_input+button]:font-medium"
             fieldId={field.def.id}
@@ -337,6 +342,7 @@ function JobApplicationWorkspace() {
 
               <div className="mt-4 flex min-h-6 flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-zinc-600">
                 <span>Fill: {api.fill.status}</span>
+                <span>Check: {api.check.status}</span>
                 <span>
                   {completed}/{visibleFields.length} filled
                 </span>
@@ -360,16 +366,31 @@ function JobApplicationWorkspace() {
                   </button>
                 ) : null}
               </div>
-              {api.fill.error ? (
-                <p className="mt-2 text-sm text-red-700">
-                  {api.fill.error}{" "}
+              {api.fill.error === "Cancelled" ? (
+                <p className="mt-2 text-sm text-zinc-700">
+                  Cancelled. {latestFill?.counts.proposals ?? 0}{" "}
+                  {latestFill?.counts.proposals === 1 ? "field" : "fields"}{" "}
+                  filled so far.{" "}
                   <button
                     className="font-medium underline"
                     onClick={() => void api.fill.run()}
                     type="button"
                   >
-                    Retry
+                    Fill again
                   </button>
+                </p>
+              ) : api.fill.error ? (
+                <p className="mt-2 text-sm text-red-700">
+                  {api.fill.error}{" "}
+                  {api.fill.retryable ? (
+                    <button
+                      className="font-medium underline"
+                      onClick={() => void api.fill.retry()}
+                      type="button"
+                    >
+                      Retry
+                    </button>
+                  ) : null}
                 </p>
               ) : null}
               {localError ? (
@@ -384,7 +405,7 @@ function JobApplicationWorkspace() {
                   Source text and highlighted evidence will appear here.
                 </p>
               ) : (
-                <SourcePane className="mt-6 max-h-[55vh] space-y-6 overflow-auto pr-2 [&_header]:mb-2 [&_header]:flex [&_header]:items-center [&_header]:justify-between [&_header]:gap-4 [&_header]:text-sm [&_header]:font-semibold [&_header_button]:font-normal [&_header_button]:text-zinc-500 [&_header_button]:underline [&_mark]:bg-amber-200 [&_mark]:text-inherit [&_mark[data-active=true]]:animate-pulse [&_mark[data-active=true]]:bg-orange-400 [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_pre]:text-sm [&_pre]:leading-7 [&_pre]:text-zinc-700 [&_span[data-page]]:mt-4 [&_span[data-page]]:mb-2 [&_span[data-page]]:block [&_span[data-page]]:border-b [&_span[data-page]]:border-zinc-300 [&_span[data-page]]:pb-1 [&_span[data-page]]:font-mono [&_span[data-page]]:text-[11px] [&_span[data-page]]:leading-5 [&_span[data-page]]:tracking-wider [&_span[data-page]]:text-zinc-500 [&_span[data-page]]:uppercase" />
+                <SourcePane className="mt-6 max-h-[55vh] space-y-6 overflow-auto pr-2 [&_[data-use-for-menu]]:mt-3 [&_[data-use-for-menu]]:border-l-2 [&_[data-use-for-menu]]:border-amber-600 [&_[data-use-for-menu]]:bg-amber-50 [&_[data-use-for-menu]]:p-3 [&_[data-use-for-menu]>p]:text-xs [&_[data-use-for-menu]>p]:font-semibold [&_[data-use-for-menu]>ul]:mt-2 [&_[data-use-for-menu]>ul]:flex [&_[data-use-for-menu]>ul]:flex-wrap [&_[data-use-for-menu]>ul]:gap-2 [&_[data-use-for-menu]_button]:border [&_[data-use-for-menu]_button]:border-amber-700 [&_[data-use-for-menu]_button]:bg-white [&_[data-use-for-menu]_button]:px-2 [&_[data-use-for-menu]_button]:py-1 [&_[data-use-for-menu]_button]:text-xs [&_[data-use-for-menu]_button]:font-medium [&_header]:mb-2 [&_header]:flex [&_header]:items-center [&_header]:justify-between [&_header]:gap-4 [&_header]:text-sm [&_header]:font-semibold [&_header_button]:font-normal [&_header_button]:text-zinc-500 [&_header_button]:underline [&_mark]:bg-amber-200 [&_mark]:text-inherit [&_mark[data-active=true]]:animate-pulse [&_mark[data-active=true]]:bg-orange-400 [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_pre]:text-sm [&_pre]:leading-7 [&_pre]:text-zinc-700 [&_span[data-page]]:mt-4 [&_span[data-page]]:mb-2 [&_span[data-page]]:block [&_span[data-page]]:border-b [&_span[data-page]]:border-zinc-300 [&_span[data-page]]:pb-1 [&_span[data-page]]:font-mono [&_span[data-page]]:text-[11px] [&_span[data-page]]:leading-5 [&_span[data-page]]:tracking-wider [&_span[data-page]]:text-zinc-500 [&_span[data-page]]:uppercase" />
               )}
             </div>
           </aside>
@@ -392,6 +413,7 @@ function JobApplicationWorkspace() {
           <section className="bg-white p-5 sm:p-8 lg:p-12">
             <div className="mx-auto max-w-2xl">
               <ReviewBar className="mb-8 flex flex-col gap-3 border-y border-amber-300 bg-amber-50 px-4 py-3 text-sm text-zinc-800 sm:flex-row sm:items-center sm:justify-between [&_button]:w-fit [&_button]:bg-zinc-950 [&_button]:px-3 [&_button]:py-2 [&_button]:font-semibold [&_button]:text-white [&_div:first-child]:text-base [&_div:last-child]:font-mono [&_div:last-child]:text-xs [&_div:last-child]:text-zinc-600 [&_kbd]:font-semibold [&_p]:font-medium" />
+              <Flags className="mb-8 space-y-4 border-y border-zinc-300 bg-stone-50 px-4 py-3 text-sm [&_[data-acknowledge-flag]]:font-semibold [&_[data-acknowledge-flag]]:underline [&_[data-flag-fields]]:flex [&_[data-flag-fields]]:flex-wrap [&_[data-flag-fields]]:gap-3 [&_[data-flag-fields]_button]:font-medium [&_[data-flag-fields]_button]:underline [&_[data-flag-severity]]:font-mono [&_[data-flag-severity]]:text-[10px] [&_[data-flag-severity]]:font-semibold [&_[data-flag-severity]]:tracking-wider [&_[data-flag-severity]]:uppercase [&_li]:space-y-2 [&_li[data-acknowledged=true]]:opacity-60 [&_li[data-severity=error]_[data-flag-severity]]:text-red-700 [&_li[data-severity=warning]_[data-flag-severity]]:text-amber-700" />
               <p className="text-sm leading-6 text-zinc-600">
                 Fields update as evidence arrives. Review anything highlighted
                 in amber before submitting.

@@ -6,6 +6,13 @@ export interface ReviewBarProps {
 
 export function ReviewBar({ className }: ReviewBarProps) {
   const api = useAIFormApi();
+  const openErrors = api.flags.openErrorCount;
+  const errorCount =
+    openErrors > 0 ? (
+      <span data-open-error-flags>
+        {openErrors} open error {openErrors === 1 ? "flag" : "flags"}
+      </span>
+    ) : null;
   const reviewFields = Object.values(api.fields).filter(
     (field) =>
       field.visible &&
@@ -27,6 +34,7 @@ export function ReviewBar({ className }: ReviewBarProps) {
             {api.review.progress.index} of {api.review.progress.total}
           </strong>{" "}
           <span>{cursorField.def.label}</span>
+          {errorCount ? <> · {errorCount}</> : null}
         </div>
         <div>
           <span>
@@ -46,7 +54,13 @@ export function ReviewBar({ className }: ReviewBarProps) {
     );
   }
 
-  if (api.fill.status !== "done") return null;
+  if (api.fill.status !== "done") {
+    return errorCount ? (
+      <aside aria-live="polite" className={className} data-review-bar>
+        <p>{errorCount}</p>
+      </aside>
+    ) : null;
+  }
 
   if (reviewFields.length > 0) {
     const hasReviewed = api.review.order.length > 0;
@@ -54,7 +68,7 @@ export function ReviewBar({ className }: ReviewBarProps) {
       <aside aria-live="polite" className={className} data-review-bar>
         <p>
           {filledByAI} {filledByAI === 1 ? "field" : "fields"} filled. Review
-          them.
+          them.{errorCount ? <> {errorCount}.</> : null}
         </p>
         <button onClick={api.review.start} type="button">
           {hasReviewed ? "Review again" : "Start review"}
@@ -69,7 +83,7 @@ export function ReviewBar({ className }: ReviewBarProps) {
   if (!hasUnreviewedBlocker) {
     return (
       <aside aria-live="polite" className={className} data-review-bar>
-        All reviewed
+        All reviewed{errorCount ? <> · {errorCount}</> : null}
       </aside>
     );
   }

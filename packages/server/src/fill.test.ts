@@ -35,6 +35,64 @@ async function collect(events: AsyncIterable<FillEvent>): Promise<FillEvent[]> {
 }
 
 describe("fill", () => {
+  it("runs check mode with current values and no target fields", async () => {
+    let modelPrompt = "";
+    let modelSystem = "";
+    const fake = createFakeAdapter([
+      {
+        kind: "flag",
+        fieldIds: ["startDate", "gradYear"],
+        message: "The employment start date is before graduation.",
+        severity: "error",
+      },
+    ]);
+    const adapter: ModelAdapter = {
+      streamItems(input) {
+        modelPrompt = input.prompt;
+        modelSystem = input.system;
+        return fake.streamItems(input);
+      },
+    };
+    const events = await collect(
+      fill(
+        {
+          ...request(loadResume("lena-fischer.txt")),
+          mode: "check",
+          currentValues: {
+            startDate: "2016-01-01",
+            gradYear: 2019,
+          },
+        },
+        {
+          adapter,
+          idGen: (() => {
+            let id = 0;
+            return () => `check-${++id}`;
+          })(),
+        },
+      ),
+    );
+
+    expect(events[0]).toEqual({
+      type: "start",
+      fillId: "check-1",
+      targetFieldIds: [],
+    });
+    expect(events).toContainEqual({
+      type: "flag",
+      flag: {
+        id: "check-2",
+        fillId: "check-1",
+        fieldIds: ["startDate", "gradYear"],
+        message: "The employment start date is before graduation.",
+        severity: "error",
+      },
+    });
+    expect(modelPrompt).toContain("<current_values>");
+    expect(modelPrompt).toContain('"startDate":"2016-01-01"');
+    expect(modelSystem).toContain("emit only flag and question");
+  });
+
   it("streams proposals before later model items are consumed", async () => {
     const adapter = createFakeAdapter([
       {

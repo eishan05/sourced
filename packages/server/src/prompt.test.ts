@@ -30,6 +30,8 @@ describe("buildPrompt", () => {
       "Every option must include the candidate's verbatim quote and sourceId",
     );
     expect(result.system).toContain('"kind":"question"');
+    expect(result.system).toContain('"kind":"flag"');
+    expect(result.system).toContain('"startDate","gradYear"');
   });
 
   it("adds current values and check-mode instructions", () => {

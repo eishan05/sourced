@@ -1,8 +1,13 @@
-import type { FillEvent, FillTransport, Proposal } from "@ai-native-forms/core";
+import type {
+  FillEvent,
+  FillRequest,
+  FillTransport,
+  Proposal,
+} from "@ai-native-forms/core";
 import { jobApplicationForm } from "@ai-native-forms/examples/forms";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { useAIForm } from "./useAIForm";
 
@@ -46,6 +51,74 @@ function proposal(
 }
 
 describe("useAIForm fill lifecycle", () => {
+  it("runs one automatic check after a fill changes values", async () => {
+    const modes: FillRequest["mode"][] = [];
+    let checkValues: Record<string, unknown> | undefined;
+    const transport: FillTransport = async function* (request) {
+      modes.push(request.mode);
+      if (request.mode === "check") {
+        checkValues = request.currentValues;
+        yield { type: "start", fillId: "check-1", targetFieldIds: [] };
+        yield {
+          type: "flag",
+          flag: {
+            id: "flag-dates",
+            fillId: "check-1",
+            fieldIds: ["startDate", "gradYear"],
+            message: "The start date is before graduation.",
+            severity: "warning",
+          },
+        };
+        yield {
+          type: "done",
+          fillId: "check-1",
+          counts: { proposals: 0, questions: 0, flags: 1 },
+        };
+        return;
+      }
+
+      const sourceId = request.sources[0]?.id ?? "missing";
+      yield {
+        type: "start",
+        fillId: `fill-${modes.length}`,
+        targetFieldIds: [],
+      };
+      yield proposal(
+        `fill-${modes.length}`,
+        "fullName",
+        "Priya Raman",
+        sourceId,
+        0,
+        5,
+      );
+      yield {
+        type: "done",
+        fillId: `fill-${modes.length}`,
+        counts: { proposals: 1, questions: 0, flags: 0 },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+      }),
+    );
+    act(() => {
+      result.current.sources.addText("Priya Raman", "resume.txt");
+    });
+
+    await act(async () => result.current.fill.run());
+
+    expect(modes).toEqual(["fill", "check"]);
+    expect(checkValues).toMatchObject({ fullName: "Priya Raman" });
+    expect(result.current.check.status).toBe("done");
+    expect(result.current.state.flags).toHaveLength(1);
+
+    await act(async () => result.current.fill.run());
+    expect(modes).toEqual(["fill", "check", "fill"]);
+  });
+
   it("auto-fills a new source and applies delayed proposals incrementally", async () => {
     let generatorFinished = false;
     const transport: FillTransport = async function* (request, signal) {
@@ -58,12 +131,12 @@ describe("useAIForm fill lifecycle", () => {
       if (signal?.aborted) return;
       yield proposal("fill-1", "email", "priya@example.com", sourceId, 6, 12);
       await delay(20, signal);
+      generatorFinished = true;
       yield {
         type: "done",
         fillId: "fill-1",
         counts: { proposals: 2, questions: 0, flags: 0 },
       };
-      generatorFinished = true;
     };
     const { result } = renderHook(() =>
       useAIForm({ form: jobApplicationForm, transport }),
@@ -151,6 +224,7 @@ describe("useAIForm fill lifecycle", () => {
 
     expect(result.current.fill.status).toBe("error");
     expect(result.current.fill.error).toBe("Network unavailable");
+    expect(result.current.fill.retryable).toBe(true);
     expect(Object.keys(result.current.state.fills)).toEqual(["local-1"]);
   });
 
@@ -255,6 +329,15 @@ describe("useAIForm fill lifecycle", () => {
     let call = 0;
     let secondFillValues: Record<string, unknown> | undefined;
     const transport: FillTransport = async function* (request) {
+      if (request.mode === "check") {
+        yield { type: "start", fillId: "check-refill", targetFieldIds: [] };
+        yield {
+          type: "done",
+          fillId: "check-refill",
+          counts: { proposals: 0, questions: 0, flags: 0 },
+        };
+        return;
+      }
       call += 1;
       const fillId = `fill-${call}`;
       const sourceId = request.sources[0]?.id ?? "missing";
@@ -321,6 +404,153 @@ describe("useAIForm fill lifecycle", () => {
       "+1 555 999 0000",
     );
     expect(result.current.field("location").value).toBe("Bengaluru");
+  });
+
+  it("keeps mid-stream proposals and retries retryable errors", async () => {
+    let calls = 0;
+    const transport: FillTransport = async function* (request) {
+      calls += 1;
+      const fillId = `fill-error-${calls}`;
+      const sourceId = request.sources[0]?.id ?? "missing";
+      yield { type: "start", fillId, targetFieldIds: [] };
+      if (calls === 1) {
+        yield proposal(fillId, "fullName", "Priya Raman", sourceId, 0, 5);
+        yield {
+          type: "error",
+          fillId,
+          message: "Provider unavailable",
+          retryable: true,
+        };
+        return;
+      }
+      yield {
+        type: "done",
+        fillId,
+        counts: { proposals: 0, questions: 0, flags: 0 },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+      }),
+    );
+    act(() => {
+      result.current.sources.addText("Priya Raman", "resume.txt");
+    });
+
+    await act(async () => result.current.fill.run());
+
+    expect(result.current.field("fullName").value).toBe("Priya Raman");
+    expect(result.current.fill.error).toBe("Provider unavailable");
+    expect(result.current.fill.retryable).toBe(true);
+
+    await act(async () => result.current.fill.retry());
+
+    expect(calls).toBe(2);
+    expect(result.current.fill.status).toBe("done");
+    expect(result.current.fill.retryable).toBe(false);
+    expect(result.current.field("fullName").value).toBe("Priya Raman");
+  });
+});
+
+describe("useAIForm checks before submit", () => {
+  const completeValues = {
+    fullName: "Priya Raman",
+    email: "priya@example.com",
+    currentlyEmployed: false,
+    workAuthorization: "citizen",
+  };
+
+  it("blocks on a new error flag until it is acknowledged", async () => {
+    let checks = 0;
+    const onSubmit = vi.fn();
+    const transport: FillTransport = async function* (request) {
+      checks += 1;
+      const fillId = `check-submit-${checks}`;
+      expect(request.mode).toBe("check");
+      yield { type: "start", fillId, targetFieldIds: [] };
+      if (checks === 1) {
+        yield {
+          type: "flag",
+          flag: {
+            id: "blocking-flag",
+            fillId,
+            fieldIds: ["fullName", "email"],
+            message: "The contact details may belong to different people.",
+            severity: "error",
+          },
+        };
+      }
+      yield {
+        type: "done",
+        fillId,
+        counts: { proposals: 0, questions: 0, flags: checks === 1 ? 1 : 0 },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+        initialValues: completeValues,
+        onSubmit,
+      }),
+    );
+
+    await act(async () => result.current.submit.request());
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(result.current.submit.status).toBe("idle");
+    expect(result.current.submit.blockers).toContainEqual({
+      reason: "flag",
+      flagId: "blocking-flag",
+    });
+
+    act(() => result.current.flags.acknowledge("blocking-flag"));
+    await act(async () => result.current.submit.request());
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(result.current.submit.status).toBe("submitted");
+  });
+
+  it("allows a warning flag through submission", async () => {
+    const onSubmit = vi.fn();
+    const transport: FillTransport = async function* () {
+      yield { type: "start", fillId: "check-warning", targetFieldIds: [] };
+      yield {
+        type: "flag",
+        flag: {
+          id: "warning-flag",
+          fillId: "check-warning",
+          fieldIds: ["fullName"],
+          message: "Double-check the spelling.",
+          severity: "warning",
+        },
+      };
+      yield {
+        type: "done",
+        fillId: "check-warning",
+        counts: { proposals: 0, questions: 0, flags: 1 },
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+        initialValues: completeValues,
+        onSubmit,
+      }),
+    );
+
+    await act(async () => result.current.submit.request());
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(result.current.submit.status).toBe("submitted");
+    expect(result.current.submit.blockers).toEqual([]);
+    expect(result.current.state.flags[0]?.severity).toBe("warning");
   });
 });
 

@@ -4,6 +4,7 @@ import {
   type FieldValue,
   type FillRequest,
   type FillTransport,
+  type Flag,
   type FormDefinition,
   type FormEvent,
   type FormState,
@@ -47,6 +48,7 @@ export interface UseAIFormOptions {
   initialValues?: Record<string, FieldValue>;
   today?: string;
   autoFillOnSource?: boolean;
+  checkBeforeSubmit?: boolean;
   pdfExtractor?: (
     data: ArrayBuffer,
   ) => Promise<{ text: string; pageTexts: string[] }>;
@@ -117,6 +119,15 @@ export interface SectionApi {
   collapse(): void;
 }
 
+export interface SourceSelection {
+  sourceId: string;
+  start: number;
+  end: number;
+  quote: string;
+}
+
+type RunStatus = "idle" | "streaming" | "done" | "error";
+
 export interface AIFormApi {
   today: string;
   state: FormState;
@@ -124,6 +135,7 @@ export interface AIFormApi {
   registerInput(fieldId: string, element: HTMLElement | null): void;
   field(id: string): FieldApi;
   fields: Record<string, FieldApi>;
+  flagsByFirstField: Record<string, Flag[]>;
   sections: SectionApi[];
   sources: {
     list: Source[];
@@ -134,15 +146,30 @@ export interface AIFormApi {
     remove(id: string): void;
     highlights(sourceId: string): SourceHighlight[];
     activeSpan: Span | null;
+    selection: SourceSelection | null;
+    setSelection(selection: SourceSelection | null): void;
     focusSpan(span: Span): void;
     clearActiveSpan(): void;
   };
   fill: {
     run(): Promise<void>;
     cancel(): void;
-    status: "idle" | "streaming" | "done" | "error";
+    retry(): Promise<void>;
+    status: RunStatus;
     error: string | null;
+    retryable: boolean;
     dropped: Array<{ fieldId?: string; reason: string; detail?: string }>;
+  };
+  check: {
+    run(): Promise<void>;
+    status: RunStatus;
+    error: string | null;
+  };
+  flags: {
+    all: Flag[];
+    byFirstField: Record<string, Flag[]>;
+    openErrorCount: number;
+    acknowledge(flagId: string): void;
   };
   review: {
     active: boolean;
@@ -173,6 +200,12 @@ interface ActiveFill {
   fillId: string | null;
   cancelled: boolean;
   sourceIds: string[];
+  mode: FillRequest["mode"];
+}
+
+interface RunResult {
+  status: "done" | "error" | "cancelled" | "busy";
+  proposals: number;
 }
 
 interface ReopenedSection {
@@ -277,12 +310,15 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const transportRef = useRef(options.transport);
   const onSubmitRef = useRef(options.onSubmit);
   const pdfExtractorRef = useRef(options.pdfExtractor);
+  const checkBeforeSubmitRef = useRef(options.checkBeforeSubmit !== false);
   const todayRef = useRef(options.today ?? localDate());
   transportRef.current = options.transport;
   onSubmitRef.current = options.onSubmit;
   pdfExtractorRef.current = options.pdfExtractor;
+  checkBeforeSubmitRef.current = options.checkBeforeSubmit !== false;
 
   const [activeSpan, setActiveSpan] = useState<Span | null>(null);
+  const [selection, setSelection] = useState<SourceSelection | null>(null);
   const [pendingSources, setPendingSources] = useState<string[]>([]);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [highlightedOption, setHighlightedOption] = useState(0);
@@ -296,8 +332,14 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     Record<string, Normalization>
   >({});
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
+  const [fillRetryable, setFillRetryable] = useState(false);
+  const [checkState, setCheckState] = useState<{
+    status: RunStatus;
+    error: string | null;
+  }>({ status: "idle", error: null });
   const activeFillRef = useRef<ActiveFill | null>(null);
   const latestFillIdRef = useRef<string | null>(null);
+  const checkedValuesHashRef = useRef<string | null>(null);
   const localFillCounterRef = useRef(0);
   const autoFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRegistryRef = useRef(new Map<string, HTMLElement>());
@@ -327,132 +369,177 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     return `local-${localFillCounterRef.current}`;
   }, []);
 
-  const runFill = useCallback(async (): Promise<void> => {
-    if (activeFillRef.current) return;
+  const executeRun = useCallback(
+    async (mode: FillRequest["mode"]): Promise<RunResult> => {
+      if (activeFillRef.current) {
+        return { status: "busy", proposals: 0 };
+      }
 
-    const currentState = store.getState();
-    const sourceList = Object.values(currentState.sources);
-    const sourceIds = sourceList.map((source) => source.id);
-    const controller = new AbortController();
-    const activeFill: ActiveFill = {
-      controller,
-      fillId: null,
-      cancelled: false,
-      sourceIds,
-    };
-    activeFillRef.current = activeFill;
+      const currentState = store.getState();
+      const sourceList = Object.values(currentState.sources);
+      const sourceIds = sourceList.map((source) => source.id);
+      const controller = new AbortController();
+      const activeFill: ActiveFill = {
+        controller,
+        fillId: null,
+        cancelled: false,
+        sourceIds,
+        mode,
+      };
+      activeFillRef.current = activeFill;
+      if (mode === "fill") {
+        setFillRetryable(false);
+      } else {
+        setCheckState({ status: "streaming", error: null });
+      }
 
-    const request: FillRequest = {
-      form: serializeForm(options.form as FormDefinition),
-      sources: sourceList,
-      mode: "fill",
-      currentValues: values(currentState),
-      today: todayRef.current,
-    };
+      const request: FillRequest = {
+        form: serializeForm(options.form as FormDefinition),
+        sources: sourceList,
+        mode,
+        currentValues: values(currentState),
+        today: todayRef.current,
+      };
+      let receivedProposals = 0;
 
-    const failBeforeStart = (message: string): void => {
-      const fillId = nextLocalFillId();
-      activeFill.fillId = fillId;
-      latestFillIdRef.current = fillId;
-      store.dispatch({ type: "FILL_STARTED", fillId, sourceIds });
-      store.dispatch({ type: "FILL_FAILED", fillId, error: message });
-    };
+      const startLocalFill = (): string => {
+        const fillId = nextLocalFillId();
+        activeFill.fillId = fillId;
+        if (mode === "fill") latestFillIdRef.current = fillId;
+        store.dispatch({ type: "FILL_STARTED", fillId, sourceIds });
+        return fillId;
+      };
+      const fail = (message: string, retryable: boolean): void => {
+        const fillId = activeFill.fillId ?? startLocalFill();
+        store.dispatch({ type: "FILL_FAILED", fillId, error: message });
+        if (mode === "fill") {
+          setFillRetryable(retryable);
+        } else {
+          setCheckState({ status: "error", error: message });
+        }
+      };
 
-    try {
-      for await (const event of transportRef.current(
-        request,
-        controller.signal,
-      )) {
-        if (controller.signal.aborted || activeFill.cancelled) break;
+      try {
+        for await (const event of transportRef.current(
+          request,
+          controller.signal,
+        )) {
+          if (controller.signal.aborted || activeFill.cancelled) break;
 
-        switch (event.type) {
-          case "start":
-            activeFill.fillId = event.fillId;
-            latestFillIdRef.current = event.fillId;
-            store.dispatch({
-              type: "FILL_STARTED",
-              fillId: event.fillId,
-              sourceIds,
-            });
-            break;
-          case "proposal":
-            store.dispatch({
-              type: "PROPOSAL_RECEIVED",
-              proposal: event.proposal,
-            });
-            break;
-          case "question":
-            store.dispatch({
-              type: "QUESTION_RECEIVED",
-              question: event.question,
-            });
-            break;
-          case "flag":
-            store.dispatch({ type: "FLAG_RECEIVED", flag: event.flag });
-            break;
-          case "no_evidence":
-            store.dispatch({
-              type: "NO_EVIDENCE",
-              fillId: event.fillId,
-              fieldId: event.fieldId,
-            });
-            break;
-          case "dropped": {
-            const entry = {
-              ...(event.fieldId ? { fieldId: event.fieldId } : {}),
-              reason: event.reason,
-              ...(event.detail ? { detail: event.detail } : {}),
-            };
-            setDropped((current) => [...current, entry]);
-            break;
-          }
-          case "ping":
-            break;
-          case "done":
-            store.dispatch({ type: "FILL_FINISHED", fillId: event.fillId });
-            break;
-          case "error":
-            if (!activeFill.fillId) {
-              failBeforeStart(event.message);
-            } else {
+          switch (event.type) {
+            case "start":
+              activeFill.fillId = event.fillId;
+              if (mode === "fill") latestFillIdRef.current = event.fillId;
               store.dispatch({
-                type: "FILL_FAILED",
-                fillId: event.fillId || activeFill.fillId,
-                error: event.message,
+                type: "FILL_STARTED",
+                fillId: event.fillId,
+                sourceIds,
               });
+              break;
+            case "proposal":
+              if (mode === "fill") {
+                receivedProposals += 1;
+                store.dispatch({
+                  type: "PROPOSAL_RECEIVED",
+                  proposal: event.proposal,
+                });
+              }
+              break;
+            case "question":
+              store.dispatch({
+                type: "QUESTION_RECEIVED",
+                question: event.question,
+              });
+              break;
+            case "flag":
+              store.dispatch({ type: "FLAG_RECEIVED", flag: event.flag });
+              break;
+            case "no_evidence":
+              if (mode === "fill") {
+                store.dispatch({
+                  type: "NO_EVIDENCE",
+                  fillId: event.fillId,
+                  fieldId: event.fieldId,
+                });
+              }
+              break;
+            case "dropped": {
+              const entry = {
+                ...(event.fieldId ? { fieldId: event.fieldId } : {}),
+                reason: event.reason,
+                ...(event.detail ? { detail: event.detail } : {}),
+              };
+              setDropped((current) => [...current, entry]);
+              break;
             }
-            return;
-          default: {
-            const exhaustive: never = event;
-            return exhaustive;
+            case "ping":
+              break;
+            case "done":
+              store.dispatch({ type: "FILL_FINISHED", fillId: event.fillId });
+              if (mode === "check") {
+                checkedValuesHashRef.current = JSON.stringify(
+                  values(store.getState()),
+                );
+                setCheckState({ status: "done", error: null });
+              }
+              return { status: "done", proposals: receivedProposals };
+            case "error":
+              fail(event.message, event.retryable);
+              return { status: "error", proposals: receivedProposals };
+            default: {
+              const exhaustive: never = event;
+              return exhaustive;
+            }
           }
         }
-      }
-    } catch (error) {
-      if (!controller.signal.aborted && !activeFill.cancelled) {
-        const message = errorMessage(error).slice(0, 500);
-        if (!activeFill.fillId) {
-          failBeforeStart(message);
-        } else {
-          store.dispatch({
-            type: "FILL_FAILED",
-            fillId: activeFill.fillId,
-            error: message,
+
+        if (activeFill.cancelled) {
+          return { status: "cancelled", proposals: receivedProposals };
+        }
+        if (mode === "check") {
+          setCheckState({
+            status: "error",
+            error: "Check ended before completion",
           });
         }
+        return { status: "error", proposals: receivedProposals };
+      } catch (error) {
+        if (!controller.signal.aborted && !activeFill.cancelled) {
+          fail(errorMessage(error).slice(0, 500), true);
+        }
+        return {
+          status: activeFill.cancelled ? "cancelled" : "error",
+          proposals: receivedProposals,
+        };
+      } finally {
+        if (activeFillRef.current === activeFill) {
+          activeFillRef.current = null;
+        }
       }
-    } finally {
-      if (activeFillRef.current === activeFill) {
-        activeFillRef.current = null;
-      }
+    },
+    [nextLocalFillId, options.form, store],
+  );
+
+  const runCheck = useCallback(async (): Promise<void> => {
+    await executeRun("check");
+  }, [executeRun]);
+
+  const runFill = useCallback(async (): Promise<void> => {
+    const result = await executeRun("fill");
+    if (result.status !== "done" || result.proposals === 0) return;
+
+    const currentHash = JSON.stringify(values(store.getState()));
+    if (checkedValuesHashRef.current !== currentHash) {
+      await executeRun("check");
     }
-  }, [nextLocalFillId, options.form, store]);
+  }, [executeRun, store]);
 
   const cancelFill = useCallback(() => {
     const activeFill = activeFillRef.current;
-    if (!activeFill) return;
+    if (activeFill?.mode !== "fill") return;
     activeFill.cancelled = true;
     activeFill.controller.abort();
+    setFillRetryable(false);
 
     let fillId = activeFill.fillId;
     if (!fillId) {
@@ -574,6 +661,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     (id: string) => {
       store.dispatch({ type: "SOURCE_REMOVED", sourceId: id });
       setActiveSpan((span) => (span?.sourceId === id ? null : span));
+      setSelection((current) => (current?.sourceId === id ? null : current));
     },
     [store],
   );
@@ -583,6 +671,20 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
 
   const requestSubmit = useCallback(async (): Promise<void> => {
     if (store.getState().submit.status === "submitting") return;
+    if (submitBlockers(store.getState()).length > 0) return;
+
+    if (checkBeforeSubmitRef.current) {
+      const result = await executeRun("check");
+      if (result.status !== "done") return;
+      if (
+        submitBlockers(store.getState()).some(
+          (blocker) => blocker.reason === "flag",
+        )
+      ) {
+        return;
+      }
+    }
+
     store.dispatch({ type: "SUBMIT_REQUESTED" });
     const submittingState = store.getState();
     if (submittingState.submit.status !== "submitting") return;
@@ -599,10 +701,19 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
         error: errorMessage(error).slice(0, 500),
       });
     }
-  }, [store]);
+  }, [executeRun, store]);
 
   return useMemo(() => {
     const definitions = fieldsOf(state.definition);
+    const flagsByFirstField: Record<string, Flag[]> = {};
+    for (const flag of state.flags) {
+      const firstFieldId = flag.fieldIds[0];
+      if (firstFieldId) {
+        const fieldFlags = flagsByFirstField[firstFieldId] ?? [];
+        fieldFlags.push(flag);
+        flagsByFirstField[firstFieldId] = fieldFlags;
+      }
+    }
     const fields = Object.fromEntries(
       definitions.map((definition) => {
         const field = state.fields[definition.id];
@@ -617,6 +728,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
             ? `${definition.id}-human-note`
             : null,
           field.question ? `${definition.id}-question` : null,
+          flagsByFirstField[definition.id]?.length
+            ? `${definition.id}-flags`
+            : null,
         ]
           .filter(Boolean)
           .join(" ");
@@ -790,6 +904,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
       registerInput,
       field,
       fields,
+      flagsByFirstField,
       sections: state.definition.sections.map((definition) => {
         const reason = hiddenReason(state, definition.id);
         // An unanswered gate has not made a decision yet. Keeping the section
@@ -840,15 +955,34 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
           return highlightsForSource(state, sourceId);
         },
         activeSpan,
+        selection,
+        setSelection,
         focusSpan,
         clearActiveSpan,
       },
       fill: {
         run: runFill,
         cancel: cancelFill,
+        retry: runFill,
         status: latestFill?.status ?? "idle",
         error: latestFill?.error ?? null,
+        retryable: fillRetryable,
         dropped,
+      },
+      check: {
+        run: runCheck,
+        status: checkState.status,
+        error: checkState.error,
+      },
+      flags: {
+        all: state.flags,
+        byFirstField: flagsByFirstField,
+        openErrorCount: state.flags.filter(
+          (flag) => flag.severity === "error" && !flag.acknowledged,
+        ).length,
+        acknowledge(flagId: string) {
+          store.dispatch({ type: "ACKNOWLEDGE_FLAG", flagId });
+        },
       },
       review: {
         active: state.review.active,
@@ -898,9 +1032,11 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     addFile,
     addText,
     cancelFill,
+    checkState,
     clearUserNormalization,
     clearActiveSpan,
     dropped,
+    fillRetryable,
     focusedFieldId,
     focusSpan,
     highlightedOption,
@@ -909,7 +1045,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     removeSource,
     reopenedSections,
     requestSubmit,
+    runCheck,
     runFill,
+    selection,
     sourceError,
     state,
     store,
