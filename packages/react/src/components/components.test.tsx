@@ -178,10 +178,19 @@ describe("validation as conversation", () => {
       "warning",
     );
     expect(
+      screen.queryByText("Employee ID must be exactly 9 digits"),
+    ).not.toBeInTheDocument();
+    expect(
       api?.submit.blockers.filter(
         (blocker) => blocker.fieldId === "employeeId",
       ),
     ).toEqual([{ reason: "invalid", fieldId: "employeeId" }]);
+
+    await user.tab();
+    expect(screen.getByText("Looks one digit short")).toBeVisible();
+    expect(
+      screen.getByText("Employee ID must be exactly 9 digits"),
+    ).toHaveAttribute("data-severity", "error");
 
     await user.type(input, "9");
     expect(input).toHaveValue("123456789");
@@ -476,7 +485,7 @@ describe("SourcePane", () => {
       },
     });
     expect(
-      screen.getByRole("button", { name: "from resume.txt" }),
+      screen.getByRole("button", { name: "Show source for Location" }),
     ).toBeVisible();
   });
 });
@@ -635,7 +644,9 @@ describe("AskBack", () => {
     expect(
       screen.queryByText("Which is the employer?"),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "from resume.txt" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show source for Employer" }),
+    );
     expect(api.sources.activeSpan).toEqual(firstSpan);
   });
 
@@ -818,16 +829,29 @@ describe("ProvenanceChip and Ghost", () => {
     });
 
     expect(
-      within(container).getAllByRole("button", { name: "from resume.txt" }),
-    ).toHaveLength(3);
+      within(container).getByRole("button", {
+        name: "Show source for Full name",
+      }),
+    ).toHaveAttribute("data-kind", "extracted");
     expect(
-      within(container).getByRole("button", { name: "you typed" }),
+      within(container).getByRole("button", {
+        name: "Show source for Email",
+      }),
+    ).toHaveAttribute("data-kind", "answered");
+    expect(
+      within(container).getByRole("button", {
+        name: "Show source for Phone",
+      }),
     ).toHaveAttribute("data-kind", "user");
     expect(
-      within(container).getByRole("button", { name: "prefilled" }),
+      within(container).getByRole("button", {
+        name: "Show source for LinkedIn",
+      }),
     ).toHaveAttribute("data-kind", "prefill");
     expect(
-      within(container).getByRole("button", { name: "inferred" }),
+      within(container).getByRole("button", {
+        name: "Show source for Years of experience",
+      }),
     ).toHaveAttribute("data-kind", "inferred");
     expect(container.querySelector('[data-field="fullName"]')).toHaveAttribute(
       "data-provenance",

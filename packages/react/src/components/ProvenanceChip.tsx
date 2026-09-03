@@ -21,6 +21,7 @@ export function ProvenanceChip({ fieldId, className }: ProvenanceChipProps) {
 
   return (
     <button
+      aria-label={`Show source for ${field.def.label}`}
       className={className}
       data-kind={chip.kind}
       onClick={chip.focus}

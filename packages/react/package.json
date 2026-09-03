@@ -10,12 +10,22 @@
     "./pdf": {
       "types": "./dist/pdf.d.ts",
       "import": "./dist/pdf.js"
+    },
+    "./kit": {
+      "types": "./dist/kit.d.ts",
+      "import": "./dist/kit.js"
+    },
+    "./kit.css": {
+      "default": "./kit.css"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "kit.css"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./kit.css"
+  ],
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",

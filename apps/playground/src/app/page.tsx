@@ -9,15 +9,21 @@ export default function Home() {
           Forms that start with the evidence.
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-400">
-          Add a resume, watch the application fill as proposals stream in, and
-          review every answer against its source.
+          These demos show how headless AI-native form primitives and the
+          drop-in styled kit turn source evidence into reviewable answers while
+          keeping people in control of every submitted value.
         </p>
-        <a
-          className="mt-10 inline-block bg-amber-400 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-300"
-          href="/job-application"
-        >
-          Open job application
-        </a>
+        <ul className="mt-10 border-t border-zinc-700">
+          <li className="border-b border-zinc-700">
+            <a
+              className="flex items-center justify-between gap-6 py-5 text-lg font-semibold transition hover:text-amber-300"
+              href="/job-application"
+            >
+              <span>Job application</span>
+              <span aria-hidden="true">Open →</span>
+            </a>
+          </li>
+        </ul>
       </div>
     </main>
   );

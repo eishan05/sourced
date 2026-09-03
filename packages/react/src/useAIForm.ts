@@ -88,6 +88,7 @@ export interface FieldApi {
   status: FieldStatus;
   value: FieldValue;
   draft: boolean;
+  justFilled: boolean;
   normalization: Normalization | null;
   setValue(value: FieldValue): void;
   normalize(): void;
@@ -332,6 +333,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     Record<string, Normalization>
   >({});
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
+  const [justFilledFields, setJustFilledFields] = useState<
+    Record<string, true>
+  >({});
   const [fillRetryable, setFillRetryable] = useState(false);
   const [checkState, setCheckState] = useState<{
     status: RunStatus;
@@ -342,6 +346,19 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const checkedValuesHashRef = useRef<string | null>(null);
   const localFillCounterRef = useRef(0);
   const autoFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+  const provenanceRef = useRef(
+    Object.fromEntries(
+      Object.entries(store.getState().fields).map(([fieldId, field]) => [
+        fieldId,
+        field.provenance
+          ? `${field.provenance.kind}:${field.provenance.proposalId ?? field.provenance.questionId ?? ""}`
+          : null,
+      ]),
+    ) as Record<string, string | null>,
+  );
   const inputRegistryRef = useRef(new Map<string, HTMLElement>());
 
   const clearUserNormalization = useCallback((fieldId: string): void => {
@@ -558,10 +575,65 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   useEffect(
     () => () => {
       if (autoFillTimerRef.current) clearTimeout(autoFillTimerRef.current);
+      for (const timer of settleTimersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      settleTimersRef.current.clear();
       activeFillRef.current?.controller.abort();
     },
     [],
   );
+
+  useEffect(() => {
+    const aiKinds = new Set<ProvenanceKind>([
+      "extracted",
+      "inferred",
+      "answered",
+    ]);
+    const landed: string[] = [];
+    const next: Record<string, string | null> = {};
+
+    for (const [fieldId, field] of Object.entries(state.fields)) {
+      const provenance = field.provenance;
+      const signature = provenance
+        ? `${provenance.kind}:${provenance.proposalId ?? provenance.questionId ?? ""}`
+        : null;
+      next[fieldId] = signature;
+      if (
+        provenance &&
+        aiKinds.has(provenance.kind) &&
+        provenanceRef.current[fieldId] !== signature
+      ) {
+        landed.push(fieldId);
+      }
+    }
+
+    provenanceRef.current = next;
+    if (landed.length === 0) return;
+
+    setJustFilledFields((current) => {
+      const updated = { ...current };
+      for (const fieldId of landed) updated[fieldId] = true;
+      return updated;
+    });
+
+    for (const fieldId of landed) {
+      const currentTimer = settleTimersRef.current.get(fieldId);
+      if (currentTimer) clearTimeout(currentTimer);
+      settleTimersRef.current.set(
+        fieldId,
+        setTimeout(() => {
+          settleTimersRef.current.delete(fieldId);
+          setJustFilledFields((current) => {
+            if (!Object.hasOwn(current, fieldId)) return current;
+            const updated = { ...current };
+            delete updated[fieldId];
+            return updated;
+          });
+        }, 600),
+      );
+    }
+  }, [state.fields]);
 
   useEffect(() => {
     setReopenedSections((current) => {
@@ -739,13 +811,15 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
         const userNormalization = userNormalizations[definition.id];
         const normalization =
           userNormalization ?? provenance?.normalization ?? null;
+        const focused = focusedFieldId === definition.id;
         const draft =
-          focusedFieldId === definition.id &&
-          (definition.type === "date" ||
-            definition.type === "number" ||
-            definition.type === "phone") &&
-          typeof field.value === "string" &&
-          normalization === null;
+          focused &&
+          (field.issues.some((issue) => issue.severity === "warning") ||
+            ((definition.type === "date" ||
+              definition.type === "number" ||
+              definition.type === "phone") &&
+              typeof field.value === "string" &&
+              normalization === null));
         const normalize = (): void => {
           if (
             definition.type !== "date" &&
@@ -788,6 +862,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
           status,
           value: field.value,
           draft,
+          justFilled: Object.hasOwn(justFilledFields, definition.id),
           normalization,
           setValue(value) {
             clearUserNormalization(definition.id);
@@ -1040,6 +1115,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     focusedFieldId,
     focusSpan,
     highlightedOption,
+    justFilledFields,
     pendingSources,
     registerInput,
     removeSource,

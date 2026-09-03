@@ -176,7 +176,8 @@ export async function* fill(
       return;
     }
 
-    if (validItems > 0) {
+    // In check mode an empty response means "nothing to flag", not a failure.
+    if (validItems > 0 || req.mode === "check") {
       yield {
         type: "done",
         fillId,

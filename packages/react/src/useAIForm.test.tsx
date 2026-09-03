@@ -51,6 +51,44 @@ function proposal(
 }
 
 describe("useAIForm fill lifecycle", () => {
+  it("marks a newly AI-filled field as settled for 600ms", () => {
+    vi.useFakeTimers();
+    const transport: FillTransport = async function* () {};
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        autoFillOnSource: false,
+      }),
+    );
+
+    act(() => {
+      result.current.dispatch({
+        type: "FILL_STARTED",
+        fillId: "fill-settle",
+        sourceIds: [],
+      });
+      result.current.dispatch({
+        type: "PROPOSAL_RECEIVED",
+        proposal: {
+          id: "proposal-settle",
+          fillId: "fill-settle",
+          fieldId: "fullName",
+          kind: "extracted",
+          value: "Priya Raman",
+          span: null,
+        },
+      });
+    });
+
+    expect(result.current.field("fullName").justFilled).toBe(true);
+    act(() => vi.advanceTimersByTime(599));
+    expect(result.current.field("fullName").justFilled).toBe(true);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.field("fullName").justFilled).toBe(false);
+    vi.useRealTimers();
+  });
+
   it("runs one automatic check after a fill changes values", async () => {
     const modes: FillRequest["mode"][] = [];
     let checkValues: Record<string, unknown> | undefined;

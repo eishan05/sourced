@@ -24,6 +24,7 @@ export function Field({ id, children, className }: FieldProps) {
       data-field={id}
       data-policy={policyOf(field.def)}
       data-provenance={field.state.provenance?.kind}
+      data-settled={field.justFilled ? "true" : undefined}
       data-status={field.status}
     >
       {children(field)}
