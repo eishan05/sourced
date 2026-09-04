@@ -8,6 +8,7 @@
   --anf-accent: #5b5bd6;
   --anf-pending-bg: #f3f1ff;
   --anf-inferred: #8b5cf6;
+  --anf-inferred-bg: #f4efff;
   --anf-extracted: #2563eb;
   --anf-danger: #c83737;
   --anf-radius: 12px;
@@ -26,6 +27,7 @@
     --anf-accent: #9b9bff;
     --anf-pending-bg: #25243a;
     --anf-inferred: #c4a7ff;
+    --anf-inferred-bg: #29233a;
     --anf-extracted: #7ba7ff;
     --anf-danger: #ff8585;
     color-scheme: dark;
@@ -40,6 +42,7 @@
   --anf-accent: #9b9bff;
   --anf-pending-bg: #25243a;
   --anf-inferred: #c4a7ff;
+  --anf-inferred-bg: #29233a;
   --anf-extracted: #7ba7ff;
   --anf-danger: #ff8585;
   color-scheme: dark;
@@ -228,10 +231,17 @@
     box-shadow 180ms ease;
 }
 
-.anf-field[data-status="ai-pending"] {
+.anf-field[data-status="ai-pending"],
+.anf-field[data-status="ghost"] {
   margin-inline: -0.85rem;
   padding-inline: 0.85rem;
   background: var(--anf-pending-bg);
+}
+
+.anf-field[data-status="ghost"] {
+  border: 1px dashed var(--anf-inferred);
+  border-left-width: 2px;
+  border-radius: var(--anf-radius);
 }
 
 .anf-field[data-provenance="inferred"],
@@ -289,6 +299,7 @@
 .anf-field-actions {
   flex: none;
   gap: 0.5rem;
+  min-height: 1.8rem;
 }
 
 .anf-label {
@@ -344,6 +355,12 @@
   border-color: var(--anf-danger);
 }
 
+.anf-control[data-status="ghost"]::placeholder {
+  color: var(--anf-inferred);
+  font-style: italic;
+  opacity: 1;
+}
+
 .anf-textarea {
   min-height: 8rem;
   resize: vertical;
@@ -377,6 +394,13 @@
   box-shadow: 0 1px 4px color-mix(in srgb, var(--anf-fg) 18%, transparent);
 }
 
+.anf-segment[data-suggested="true"] {
+  outline: 1px dashed var(--anf-inferred);
+  outline-offset: -1px;
+  background: var(--anf-inferred-bg);
+  color: var(--anf-fg);
+}
+
 .anf-checkbox-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -406,6 +430,13 @@
 .anf-checkbox-option:has(input:checked) {
   border-color: var(--anf-accent);
   background: color-mix(in srgb, var(--anf-accent) 8%, transparent);
+  color: var(--anf-fg);
+}
+
+.anf-checkbox-option[data-suggested="true"] {
+  border-color: var(--anf-inferred);
+  border-style: dashed;
+  background: var(--anf-inferred-bg);
   color: var(--anf-fg);
 }
 
@@ -442,6 +473,11 @@
   color: var(--anf-muted);
 }
 
+.anf-suggestion-chip {
+  border-style: dashed;
+  color: var(--anf-inferred);
+}
+
 .anf-accept {
   background: var(--anf-accent);
   color: var(--anf-bg);
@@ -449,19 +485,92 @@
 
 .anf-ghost {
   flex-wrap: wrap;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
   margin-top: 0.65rem;
-  color: var(--anf-muted);
-  font-size: 0.85rem;
-}
-
-.anf-ghost > span {
-  margin-right: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--anf-inferred);
+  border-radius: calc(var(--anf-radius) * 0.72);
+  background: var(--anf-inferred-bg);
   color: var(--anf-fg);
-  font-style: italic;
 }
 
-.anf-ghost button,
+.anf-ghost-copy {
+  display: grid;
+  flex: 1 1 15rem;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.anf-ghost-eyebrow {
+  color: var(--anf-inferred);
+  font-size: 0.7rem;
+  font-weight: 720;
+  letter-spacing: 0.09em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.anf-ghost-value {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.anf-ghost-rationale,
+.anf-ghost-hint {
+  color: var(--anf-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.anf-ghost-hint {
+  margin-top: 0.18rem;
+  color: var(--anf-inferred);
+}
+
+.anf-ghost-actions {
+  display: flex;
+  flex: none;
+  gap: 0.45rem;
+  margin-left: auto;
+}
+
+.anf-ghost-actions button {
+  min-height: 2rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--anf-border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.anf-ghost-actions .anf-ghost-accept {
+  border-color: var(--anf-accent);
+  background: var(--anf-accent);
+  color: var(--anf-bg);
+}
+
+.anf-ghost-accept:hover {
+  background: color-mix(in srgb, var(--anf-accent) 86%, var(--anf-fg));
+}
+
+.anf-ghost-dismiss {
+  background: transparent;
+  color: var(--anf-fg);
+}
+
+.anf-ghost-dismiss:hover {
+  border-color: color-mix(in srgb, var(--anf-border) 45%, var(--anf-fg));
+  background: color-mix(in srgb, var(--anf-border) 40%, transparent);
+}
+
 .anf-normalization button,
 .anf-flags button,
 .anf-submit-summary button,
@@ -477,7 +586,6 @@
 }
 
 .anf-normalization button:hover,
-.anf-ghost button:hover,
 .anf-flags button:hover,
 .anf-fill-status button:hover,
 .anf-source-list header button:hover {
@@ -1021,13 +1129,19 @@
   .anf-field-heading {
     gap: 0.6rem;
   }
+
+  .anf-ghost-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .anf-field,
   .anf-shell-source,
   .anf-checkbox-option,
-  .anf-control {
+  .anf-control,
+  .anf-ghost-actions button {
     transition: none;
   }
 

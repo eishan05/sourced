@@ -597,11 +597,12 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
       const provenance = field.provenance;
       const signature = provenance
         ? `${provenance.kind}:${provenance.proposalId ?? provenance.questionId ?? ""}`
-        : null;
+        : field.suggestion
+          ? `suggestion:${field.suggestion.id}`
+          : null;
       next[fieldId] = signature;
       if (
-        provenance &&
-        aiKinds.has(provenance.kind) &&
+        ((provenance && aiKinds.has(provenance.kind)) || field.suggestion) &&
         provenanceRef.current[fieldId] !== signature
       ) {
         landed.push(fieldId);

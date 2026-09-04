@@ -173,7 +173,9 @@ function renderHarness(confirmClear?: (message: string) => boolean) {
 async function finishFill(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Fill" }));
   await waitFor(() =>
-    expect(screen.getByText("4 fields filled. Review them.")).toBeVisible(),
+    expect(
+      screen.getByText("3 fields filled, 1 suggested. Review them."),
+    ).toBeVisible(),
   );
 }
 
@@ -184,8 +186,10 @@ describe("review keyboard flow", () => {
     await finishFill(user);
 
     // The empty question is a fifth review entry, but is not described as filled.
-    // The banner count is the three filled proposals plus one visible ghost.
-    expect(screen.getByText("4 fields filled. Review them.")).toBeVisible();
+    // The banner separates the three filled proposals from the visible ghost.
+    expect(
+      screen.getByText("3 fields filled, 1 suggested. Review them."),
+    ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Start review" }));
 
     expect(harness.api().review.cursorFieldId).toBe("name");

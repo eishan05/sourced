@@ -75,6 +75,10 @@ function FieldControl({
 }) {
   const invalid =
     !field.draft && field.issues.some((issue) => issue.severity === "error");
+  const ghostPlaceholder =
+    field.status === "ghost" && field.state.suggestion
+      ? suggestionLabel(field, field.state.suggestion.value)
+      : undefined;
 
   switch (field.def.type) {
     case "textarea":
@@ -83,6 +87,7 @@ function FieldControl({
           {...field.inputProps}
           aria-invalid={invalid || undefined}
           className="anf-control anf-textarea"
+          placeholder={ghostPlaceholder}
           rows={5}
         />
       );
@@ -102,6 +107,12 @@ function FieldControl({
               aria-pressed={field.value === value}
               className="anf-segment"
               data-provenance={field.state.provenance?.kind}
+              data-suggested={
+                field.status === "ghost" &&
+                field.state.suggestion?.value === value
+                  ? "true"
+                  : undefined
+              }
               data-status={field.status}
               key={String(value)}
               onClick={() => field.setValue(value)}
@@ -130,6 +141,10 @@ function FieldControl({
       );
     case "multiselect": {
       const selected = Array.isArray(field.value) ? field.value : [];
+      const suggested =
+        field.status === "ghost" && Array.isArray(field.state.suggestion?.value)
+          ? field.state.suggestion.value
+          : [];
       return (
         <fieldset
           aria-describedby={field.inputProps["aria-describedby"]}
@@ -143,7 +158,13 @@ function FieldControl({
           {field.def.options?.map((option, index) => {
             const checked = selected.includes(option.value);
             return (
-              <label className="anf-checkbox-option" key={option.value}>
+              <label
+                className="anf-checkbox-option"
+                data-suggested={
+                  suggested.includes(option.value) ? "true" : undefined
+                }
+                key={option.value}
+              >
                 <input
                   checked={checked}
                   data-provenance={field.state.provenance?.kind}
@@ -174,6 +195,7 @@ function FieldControl({
           aria-invalid={invalid || undefined}
           className="anf-control anf-input"
           inputMode={field.def.type === "number" ? "decimal" : undefined}
+          placeholder={ghostPlaceholder}
           type={
             field.def.type === "phone"
               ? "tel"
@@ -194,6 +216,7 @@ export interface KitFieldProps {
 }
 
 export function KitField({ id, fieldId, className }: KitFieldProps) {
+  const api = useAIFormApi();
   const resolvedId = id ?? fieldId;
   if (!resolvedId) throw new Error("KitField requires an id or fieldId");
 
@@ -229,7 +252,16 @@ export function KitField({ id, fieldId, className }: KitFieldProps) {
                 </label>
               )}
               <div className="anf-field-actions">
-                <ProvenanceChip className="anf-chip" fieldId={field.def.id} />
+                {field.status === "ghost" ? (
+                  <span
+                    className="anf-chip anf-suggestion-chip"
+                    data-suggestion-badge
+                  >
+                    Suggested
+                  </span>
+                ) : (
+                  <ProvenanceChip className="anf-chip" fieldId={field.def.id} />
+                )}
                 {field.status === "ai-pending" ? (
                   <button
                     className="anf-accept"
@@ -250,8 +282,48 @@ export function KitField({ id, fieldId, className }: KitFieldProps) {
             <Ghost
               className="anf-ghost"
               fieldId={field.def.id}
-              renderValue={(value) => suggestionLabel(field, value)}
-            />
+              groupLabel={`Suggestion for ${field.def.label}`}
+            >
+              {({ suggestion, accept, dismiss }) => (
+                <>
+                  <div className="anf-ghost-copy">
+                    <span className="anf-ghost-eyebrow">Suggested</span>
+                    <span className="anf-ghost-value">
+                      {suggestionLabel(field, suggestion.value)}
+                    </span>
+                    {suggestion.rationale ? (
+                      <span className="anf-ghost-rationale">
+                        Inferred from: {suggestion.rationale}
+                      </span>
+                    ) : null}
+                    {api.review.active &&
+                    api.review.cursorFieldId === field.def.id ? (
+                      <span className="anf-ghost-hint">
+                        Enter to accept · Backspace to dismiss
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="anf-ghost-actions">
+                    <button
+                      aria-label={`Accept suggestion for ${field.def.label}`}
+                      className="anf-ghost-accept"
+                      onClick={accept}
+                      type="button"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      aria-label={`Dismiss suggestion for ${field.def.label}`}
+                      className="anf-ghost-dismiss"
+                      onClick={dismiss}
+                      type="button"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </>
+              )}
+            </Ghost>
             <AskBack className="anf-askback" fieldId={field.def.id} />
             <Normalization
               className="anf-normalization"

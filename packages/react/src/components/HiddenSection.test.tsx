@@ -208,7 +208,11 @@ describe("HiddenSection", () => {
     expect(api().field("currentlyEmployed").value).toBeNull();
     expect(screen.getByLabelText("Employer")).toBeVisible();
 
-    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Accept suggestion for Currently employed",
+      }),
+    );
     expect(
       screen.queryByRole("heading", { name: "Current role" }),
     ).not.toBeInTheDocument();

@@ -21,8 +21,10 @@ export function ReviewBar({ className }: ReviewBarProps) {
         field.state.question !== null),
   );
   const filledByAI = reviewFields.filter(
-    (field) =>
-      field.state.reviewStatus === "pending" || field.state.suggestion !== null,
+    (field) => field.state.reviewStatus === "pending",
+  ).length;
+  const suggested = reviewFields.filter(
+    (field) => field.state.suggestion !== null,
   ).length;
 
   if (api.review.active && api.review.cursorFieldId) {
@@ -67,8 +69,9 @@ export function ReviewBar({ className }: ReviewBarProps) {
     return (
       <aside aria-live="polite" className={className} data-review-bar>
         <p>
-          {filledByAI} {filledByAI === 1 ? "field" : "fields"} filled. Review
-          them.{errorCount ? <> {errorCount}.</> : null}
+          {filledByAI} {filledByAI === 1 ? "field" : "fields"} filled
+          {suggested > 0 ? `, ${suggested} suggested` : null}. Review them.
+          {errorCount ? <> {errorCount}.</> : null}
         </p>
         <button onClick={api.review.start} type="button">
           {hasReviewed ? "Review again" : "Start review"}

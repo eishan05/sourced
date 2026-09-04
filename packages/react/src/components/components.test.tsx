@@ -994,9 +994,15 @@ describe("ProvenanceChip and Ghost", () => {
       .getByText("A generated note")
       .closest<HTMLElement>("[data-ghost]");
     if (!firstGhost || !secondGhost) throw new Error("Ghosts did not render");
-    fireEvent.click(within(firstGhost).getByRole("button", { name: "Accept" }));
     fireEvent.click(
-      within(secondGhost).getByRole("button", { name: "Dismiss" }),
+      within(firstGhost).getByRole("button", {
+        name: "Accept suggestion for Years of experience",
+      }),
+    );
+    fireEvent.click(
+      within(secondGhost).getByRole("button", {
+        name: "Dismiss suggestion for Cover note",
+      }),
     );
 
     expect(api.field("yearsExperience").value).toBe(8);
