@@ -1,4 +1,4 @@
-import type { FillEvent, Proposal } from "@ai-native-forms/core";
+import type { FillEvent, Proposal } from "@sourced/core";
 
 export interface DedupeResult {
   event: FillEvent;

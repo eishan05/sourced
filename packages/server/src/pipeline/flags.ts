@@ -1,4 +1,4 @@
-import type { FillEvent, Flag } from "@ai-native-forms/core";
+import type { FillEvent, Flag } from "@sourced/core";
 
 import type { PipelineContext, ValidatedFlag } from "./types";
 

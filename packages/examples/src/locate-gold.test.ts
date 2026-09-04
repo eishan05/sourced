@@ -1,4 +1,4 @@
-import { locateQuote } from "@ai-native-forms/core";
+import { locateQuote } from "@sourced/core";
 import { describe, expect, it } from "vitest";
 
 import { listResumes, loadGold, loadResume } from "./index";

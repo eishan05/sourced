@@ -1,9 +1,4 @@
-import {
-  defineForm,
-  fieldById,
-  policyOf,
-  validateField,
-} from "@ai-native-forms/core";
+import { defineForm, fieldById, policyOf, validateField } from "@sourced/core";
 import { describe, expect, it } from "vitest";
 
 import {

@@ -1,14 +1,14 @@
 "use client";
 
-import { createFetchTransport, type FieldValue } from "@ai-native-forms/core";
-import { medicalIntakeForm } from "@ai-native-forms/examples/forms";
-import { AIFormProvider, useAIForm } from "@ai-native-forms/react";
+import { createFetchTransport, type FieldValue } from "@sourced/core";
+import { medicalIntakeForm } from "@sourced/examples/forms";
+import { AIFormProvider, useAIForm } from "@sourced/react";
 import {
   AIFormShell,
   KitDropZone,
   KitForm,
   KitSourcePane,
-} from "@ai-native-forms/react/kit";
+} from "@sourced/react/kit";
 import { useState } from "react";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
@@ -89,7 +89,7 @@ export default function MedicalIntakePage() {
           <div className="mx-auto flex max-w-[1600px] items-baseline justify-between gap-4">
             <div>
               <p className="font-mono text-xs tracking-[0.18em] text-teal-700 uppercase">
-                ai-native-forms
+                sourced
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight">
                 Medical intake

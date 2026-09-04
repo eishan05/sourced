@@ -1,4 +1,4 @@
-import { type FillEvent, policyOf } from "@ai-native-forms/core";
+import { type FillEvent, policyOf } from "@sourced/core";
 
 import type { FillItem } from "../schema";
 import type { PipelineContext, PipelineResult, ValidatedItem } from "./types";

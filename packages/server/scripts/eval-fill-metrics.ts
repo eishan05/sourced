@@ -1,4 +1,4 @@
-import type { FillEvent } from "@ai-native-forms/core";
+import type { FillEvent } from "@sourced/core";
 
 export interface TimedFillEvents {
   events: FillEvent[];

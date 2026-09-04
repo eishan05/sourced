@@ -11,10 +11,10 @@
     "e2e": "pnpm --workspace-root turbo run build --filter=playground^... && playwright test"
   },
   "dependencies": {
-    "@ai-native-forms/core": "workspace:*",
-    "@ai-native-forms/examples": "workspace:*",
-    "@ai-native-forms/react": "workspace:*",
-    "@ai-native-forms/server": "workspace:*",
+    "@sourced/core": "workspace:*",
+    "@sourced/examples": "workspace:*",
+    "@sourced/react": "workspace:*",
+    "@sourced/server": "workspace:*",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"

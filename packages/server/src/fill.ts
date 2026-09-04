@@ -4,7 +4,7 @@ import {
   fieldsOf,
   policyOf,
   type SerializedFieldDefinition,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 
 import type { ModelAdapter } from "./model/adapter";
 import { type PipelineState, runPipeline } from "./pipeline";

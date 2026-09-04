@@ -1,6 +1,10 @@
 {
-  "name": "ai-native-forms",
+  "name": "sourced",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eishan05/sourced.git"
+  },
   "private": true,
   "packageManager": "pnpm@10.26.0",
   "engines": {

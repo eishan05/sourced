@@ -6,7 +6,7 @@ import type {
   SerializedFormDefinition,
   Source,
   Span,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 
 import type { FillItem } from "../schema";
 

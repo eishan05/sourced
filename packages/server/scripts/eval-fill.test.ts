@@ -1,9 +1,5 @@
-import {
-  createSource,
-  type FillRequest,
-  serializeForm,
-} from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples";
+import { createSource, type FillRequest, serializeForm } from "@sourced/core";
+import { jobApplicationForm } from "@sourced/examples";
 import { describe, expect, it } from "vitest";
 
 import { fill } from "../src/fill";

@@ -1,6 +1,6 @@
-# `@ai-native-forms/examples`
+# `@sourced/examples`
 
-Shared form definitions and deterministic fixtures for the playground, tests, and fill evaluator. Import `@ai-native-forms/examples/forms` in browser code; the root entry also exposes Node.js fixture loaders and uses `node:fs`.
+Shared form definitions and deterministic fixtures for the playground, tests, and fill evaluator. Import `@sourced/examples/forms` in browser code; the root entry also exposes Node.js fixture loaders and uses `node:fs`.
 
 ## Forms
 
@@ -8,7 +8,7 @@ Shared form definitions and deterministic fixtures for the playground, tests, an
 import {
   jobApplicationForm,
   medicalIntakeForm,
-} from "@ai-native-forms/examples/forms";
+} from "@sourced/examples/forms";
 ```
 
 - `jobApplicationForm` covers extraction, inference, conditional employment, fixed skills, and human-only eligibility.

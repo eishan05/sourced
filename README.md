@@ -1,6 +1,6 @@
-# ai-native-forms
+# sourced
 
-`ai-native-forms` turns pasted text and documents into reviewable form answers. Define a typed form once, mount one streaming route, and render either the styled React kit or your own UI over the headless state APIs.
+`sourced` turns pasted text and documents into reviewable form answers. Define a typed form once, mount one streaming route, and render either the styled React kit or your own UI over the headless state APIs.
 
 It is built around evidence and human control rather than a chat box. Extracted values point back to source spans, inferred values are visibly distinct, field policies constrain what the model may touch, and submission waits for review, answers, validation, and server-side checks.
 
@@ -9,13 +9,13 @@ It is built around evidence and human control rather than a chat box. Extracted 
 Install the three runtime packages:
 
 ```sh
-pnpm add @ai-native-forms/core @ai-native-forms/react @ai-native-forms/server
+pnpm add @sourced/core @sourced/react @sourced/server
 ```
 
 Define a form in `app/contact-form.ts`:
 
 ```ts
-import { defineForm } from "@ai-native-forms/core";
+import { defineForm } from "@sourced/core";
 
 export const contactForm = defineForm({
   id: "contact",
@@ -50,8 +50,8 @@ export const contactForm = defineForm({
 Mount the fill endpoint at `app/api/ai-forms/fill/route.ts`:
 
 ```ts
-import { createOpenRouterAdapter } from "@ai-native-forms/server";
-import { createNextFillRoute } from "@ai-native-forms/server/next";
+import { createOpenRouterAdapter } from "@sourced/server";
+import { createNextFillRoute } from "@sourced/server/next";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -65,16 +65,16 @@ Import the kit stylesheet once in `app/layout.tsx`, then render `app/page.tsx`:
 
 ```tsx
 // app/layout.tsx
-import "@ai-native-forms/react/kit.css";
+import "@sourced/react/kit.css";
 ```
 
 ```tsx
 // app/page.tsx
 "use client";
 
-import { createFetchTransport } from "@ai-native-forms/core";
-import { AIFormProvider, useAIForm } from "@ai-native-forms/react";
-import { AIFormShell, KitForm } from "@ai-native-forms/react/kit";
+import { createFetchTransport } from "@sourced/core";
+import { AIFormProvider, useAIForm } from "@sourced/react";
+import { AIFormShell, KitForm } from "@sourced/react/kit";
 import { contactForm } from "./contact-form";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
@@ -119,13 +119,13 @@ Submit is blocked while any visible field has an unreviewed AI value, unanswered
 `createOpenRouterAdapter()` reads:
 
 - `OPENROUTER_API_KEY` (required): your OpenRouter API key; keep it server-only.
-- `AI_FORMS_MODEL` (optional): model ID; default `z-ai/glm-5.3-flash`.
+- `SOURCED_MODEL` (optional): model ID; default `z-ai/glm-5.3-flash`.
 
 Reasoning effort can be `none`, `minimal`, `low`, `medium`, or `high`:
 
 ```ts
 const adapter = createOpenRouterAdapter({
-  model: process.env.AI_FORMS_MODEL,
+  model: process.env.SOURCED_MODEL,
   effort: "low",
 });
 ```
@@ -137,7 +137,7 @@ GLM Flash is served by many OpenRouter providers with very different speeds, so 
 To bring any AI SDK `LanguageModel`, adapt it directly:
 
 ```ts
-import { createAISDKAdapter } from "@ai-native-forms/server";
+import { createAISDKAdapter } from "@sourced/server";
 import { createOpenAI } from "@ai-sdk/openai";
 
 const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -170,15 +170,15 @@ See the [core README](packages/core/README.md) for protocol types and parsing he
 With `OPENROUTER_API_KEY` set, evaluate the default job-application fixtures:
 
 ```sh
-pnpm --filter @ai-native-forms/server eval:fill
+pnpm --filter @sourced/server eval:fill
 ```
 
 Choose the medical intake form, model, effort, or one fixture:
 
 ```sh
-pnpm --filter @ai-native-forms/server eval:fill -- --form medical-intake
-pnpm --filter @ai-native-forms/server eval:fill -- --model z-ai/glm-5.3-flash --effort minimal
-pnpm --filter @ai-native-forms/server eval:fill -- --form medical-intake --fixture maya
+pnpm --filter @sourced/server eval:fill -- --form medical-intake
+pnpm --filter @sourced/server eval:fill -- --model z-ai/glm-5.3-flash --effort minimal
+pnpm --filter @sourced/server eval:fill -- --form medical-intake --fixture maya
 ```
 
 Add `--record` to save raw replay JSONL under `packages/server/fixtures/replays/<model>/`.

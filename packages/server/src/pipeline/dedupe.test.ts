@@ -1,4 +1,4 @@
-import type { FillEvent, Proposal } from "@ai-native-forms/core";
+import type { FillEvent, Proposal } from "@sourced/core";
 import { describe, expect, it } from "vitest";
 
 import { dedupe } from "./dedupe";

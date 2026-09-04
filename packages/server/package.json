@@ -1,6 +1,11 @@
 {
-  "name": "@ai-native-forms/server",
+  "name": "@sourced/server",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eishan05/sourced.git",
+    "directory": "packages/server"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -26,13 +31,13 @@
     "lint": "biome check ."
   },
   "dependencies": {
-    "@ai-native-forms/core": "workspace:*",
+    "@sourced/core": "workspace:*",
     "@openrouter/ai-sdk-provider": "3.0.0",
     "ai": "7.0.91",
     "zod": "4.5.4"
   },
   "devDependencies": {
-    "@ai-native-forms/examples": "workspace:*",
+    "@sourced/examples": "workspace:*",
     "@types/node": "26.4.1",
     "tsx": "^4.23.13"
   }

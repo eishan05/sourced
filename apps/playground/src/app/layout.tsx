@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import "@ai-native-forms/react/kit.css";
+import "@sourced/react/kit.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ai-native-forms playground",
-  description: "A playground for the ai-native-forms packages.",
+  title: "sourced playground",
+  description: "A playground for the sourced packages.",
 };
 
 export default function RootLayout({

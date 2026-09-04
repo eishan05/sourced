@@ -1,6 +1,6 @@
-# ai-native-forms
+# sourced
 
-AI-native web forms: forms designed from the ground up to be filled with AI assistance. The goal is a kick-ass user experience, not AI bolted onto a traditional form. Nothing built yet.
+Sourced is an AI-native forms library: forms designed from the ground up to be filled with AI assistance. The goal is a kick-ass user experience, not AI bolted onto a traditional form. Packages: `@sourced/core` (definitions, state machine, protocol), `@sourced/server` (fill pipeline, streaming handlers), `@sourced/react` (hook, headless components, styled kit), `@sourced/examples` (demo forms and fixtures). `apps/playground` is the Next.js demo.
 
 ## Working model: orchestrator + implementer
 

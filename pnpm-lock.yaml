@@ -26,16 +26,16 @@ importers:
 
   apps/playground:
     dependencies:
-      '@ai-native-forms/core':
+      '@sourced/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@ai-native-forms/examples':
+      '@sourced/examples':
         specifier: workspace:*
         version: link:../../packages/examples
-      '@ai-native-forms/react':
+      '@sourced/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@ai-native-forms/server':
+      '@sourced/server':
         specifier: workspace:*
         version: link:../../packages/server
       next:
@@ -88,7 +88,7 @@ importers:
 
   packages/examples:
     dependencies:
-      '@ai-native-forms/core':
+      '@sourced/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -98,14 +98,14 @@ importers:
 
   packages/react:
     dependencies:
-      '@ai-native-forms/core':
+      '@sourced/core':
         specifier: workspace:*
         version: link:../core
       unpdf:
         specifier: 1.8.1
         version: 1.8.1
     devDependencies:
-      '@ai-native-forms/examples':
+      '@sourced/examples':
         specifier: workspace:*
         version: link:../examples
       '@testing-library/dom':
@@ -141,7 +141,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@ai-native-forms/core':
+      '@sourced/core':
         specifier: workspace:*
         version: link:../core
       '@openrouter/ai-sdk-provider':
@@ -154,7 +154,7 @@ importers:
         specifier: 4.5.4
         version: 4.5.4
     devDependencies:
-      '@ai-native-forms/examples':
+      '@sourced/examples':
         specifier: workspace:*
         version: link:../examples
       '@types/node':

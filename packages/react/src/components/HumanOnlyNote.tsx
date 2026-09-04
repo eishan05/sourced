@@ -1,4 +1,4 @@
-import { policyOf } from "@ai-native-forms/core";
+import { policyOf } from "@sourced/core";
 
 import { useField } from "../context";
 

@@ -3,8 +3,8 @@ import {
   type FillEvent,
   type FillRequest,
   serializeForm,
-} from "@ai-native-forms/core";
-import { jobApplicationForm, loadResume } from "@ai-native-forms/examples";
+} from "@sourced/core";
+import { jobApplicationForm, loadResume } from "@sourced/examples";
 import { describe, expect, it } from "vitest";
 
 import { fill } from "./fill";

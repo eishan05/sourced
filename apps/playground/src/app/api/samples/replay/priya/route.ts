@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { createFakeAdapter } from "@ai-native-forms/server";
-import { createNextFillRoute } from "@ai-native-forms/server/next";
+import { createFakeAdapter } from "@sourced/server";
+import { createNextFillRoute } from "@sourced/server/next";
 
 export const runtime = "nodejs";
 

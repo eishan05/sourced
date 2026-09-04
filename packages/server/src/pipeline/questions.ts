@@ -1,4 +1,4 @@
-import type { FillEvent, Question } from "@ai-native-forms/core";
+import type { FillEvent, Question } from "@sourced/core";
 
 import { locateModelQuote } from "./locate";
 import type { PipelineContext, PipelineResult, QuestionDraft } from "./types";

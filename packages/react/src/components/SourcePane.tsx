@@ -1,8 +1,4 @@
-import {
-  normalizeValue,
-  policyOf,
-  type SourceHighlight,
-} from "@ai-native-forms/core";
+import { normalizeValue, policyOf, type SourceHighlight } from "@sourced/core";
 import { type ReactNode, useEffect, useRef } from "react";
 
 import { useAIFormApi } from "../context";

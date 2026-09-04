@@ -1,4 +1,4 @@
-import { encodeFillEvent, type FillEvent } from "@ai-native-forms/core";
+import { encodeFillEvent, type FillEvent } from "@sourced/core";
 
 interface RaceResult {
   kind: "event" | "ping" | "abort";

@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { loadResume } from "@ai-native-forms/examples";
+import { loadResume } from "@sourced/examples";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

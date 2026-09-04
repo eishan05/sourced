@@ -1,6 +1,11 @@
 {
-  "name": "@ai-native-forms/react",
+  "name": "@sourced/react",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eishan05/sourced.git",
+    "directory": "packages/react"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -34,7 +39,7 @@
     "lint": "biome check ."
   },
   "dependencies": {
-    "@ai-native-forms/core": "workspace:*",
+    "@sourced/core": "workspace:*",
     "unpdf": "1.8.1"
   },
   "peerDependencies": {
@@ -42,7 +47,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@ai-native-forms/examples": "workspace:*",
+    "@sourced/examples": "workspace:*",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",

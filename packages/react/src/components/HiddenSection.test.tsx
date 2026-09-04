@@ -1,9 +1,5 @@
-import {
-  defineForm,
-  type FieldValue,
-  type FillTransport,
-} from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples/forms";
+import { defineForm, type FieldValue, type FillTransport } from "@sourced/core";
+import { jobApplicationForm } from "@sourced/examples/forms";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";

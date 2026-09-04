@@ -4,8 +4,8 @@ import {
   type FillRequest,
   parseFillEvents,
   serializeForm,
-} from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples";
+} from "@sourced/core";
+import { jobApplicationForm } from "@sourced/examples";
 import { describe, expect, it } from "vitest";
 
 import { createFillHandler } from "./handler";

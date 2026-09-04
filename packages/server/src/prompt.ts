@@ -1,4 +1,4 @@
-import { type FillRequest, fieldsOf, policyOf } from "@ai-native-forms/core";
+import { type FillRequest, fieldsOf, policyOf } from "@sourced/core";
 
 function attribute(value: string): string {
   return JSON.stringify(value);

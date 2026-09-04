@@ -1,12 +1,12 @@
-# `@ai-native-forms/server`
+# `@sourced/server`
 
-Server-side prompting, model adapters, verification, and streaming HTTP handlers for `ai-native-forms`.
+Server-side prompting, model adapters, verification, and streaming HTTP handlers for `sourced`.
 
 ## Example
 
 ```ts
-import { createOpenRouterAdapter } from "@ai-native-forms/server";
-import { createNextFillRoute } from "@ai-native-forms/server/next";
+import { createOpenRouterAdapter } from "@sourced/server";
+import { createNextFillRoute } from "@sourced/server/next";
 
 export const runtime = "nodejs";
 export const { POST } = createNextFillRoute({
@@ -63,7 +63,7 @@ export const { POST } = createNextFillRoute({
 | `LocatedItem`, `LocatedProposal` | Shapes after quote location. |
 | `EnforcedItem`, `ProposalDraft`, `QuestionDraft` | Policy-safe shapes ready to become protocol events. |
 
-## `@ai-native-forms/server/next`
+## `@sourced/server/next`
 
 | Export | Description |
 | --- | --- |

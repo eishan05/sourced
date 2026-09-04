@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import type { FieldValue, FillTransport } from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples/forms";
+import type { FieldValue, FillTransport } from "@sourced/core";
+import { jobApplicationForm } from "@sourced/examples/forms";
 import {
   act,
   cleanup,

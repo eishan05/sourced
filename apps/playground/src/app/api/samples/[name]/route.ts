@@ -5,7 +5,7 @@ import {
   loadIntakeNote,
   loadResume,
   type ResumeName,
-} from "@ai-native-forms/examples";
+} from "@sourced/examples";
 
 export const runtime = "nodejs";
 

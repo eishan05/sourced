@@ -1,4 +1,4 @@
-import { defineForm } from "@ai-native-forms/core";
+import { defineForm } from "@sourced/core";
 
 export const jobApplicationForm = defineForm({
   id: "job-application",

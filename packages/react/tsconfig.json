@@ -4,7 +4,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@ai-native-forms/react/pdf": ["./src/pdf/index.ts"]
+      "@sourced/react/pdf": ["./src/pdf/index.ts"]
     }
   },
   "include": ["src"]

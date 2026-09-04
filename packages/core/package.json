@@ -1,6 +1,11 @@
 {
-  "name": "@ai-native-forms/core",
+  "name": "@sourced/core",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eishan05/sourced.git",
+    "directory": "packages/core"
+  },
   "type": "module",
   "exports": {
     ".": {

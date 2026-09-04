@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import type { FieldValue } from "@ai-native-forms/core";
+import type { FieldValue } from "@sourced/core";
 
 export { jobApplicationForm } from "../forms/job-application";
 export { medicalIntakeForm } from "../forms/medical-intake";

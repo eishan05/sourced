@@ -1,8 +1,4 @@
-import {
-  type FieldValue,
-  type Proposal,
-  policyOf,
-} from "@ai-native-forms/core";
+import { type FieldValue, type Proposal, policyOf } from "@sourced/core";
 import type { ReactNode } from "react";
 
 import { useField } from "../context";

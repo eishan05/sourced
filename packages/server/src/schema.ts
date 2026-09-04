@@ -1,4 +1,4 @@
-import type { Condition, FillRequest } from "@ai-native-forms/core";
+import type { Condition, FillRequest } from "@sourced/core";
 import { z } from "zod";
 
 export const FillItemSchema = z.object({

@@ -1,4 +1,4 @@
-# `@ai-native-forms/react`
+# `@sourced/react`
 
 React bindings for the core state machine: a headless hook and components, a drop-in styled kit, and optional PDF extraction.
 
@@ -7,10 +7,10 @@ React bindings for the core state machine: a headless hook and components, a dro
 ```tsx
 "use client";
 
-import { createFetchTransport } from "@ai-native-forms/core";
-import { AIFormProvider, useAIForm } from "@ai-native-forms/react";
-import { AIFormShell, KitForm } from "@ai-native-forms/react/kit";
-import "@ai-native-forms/react/kit.css";
+import { createFetchTransport } from "@sourced/core";
+import { AIFormProvider, useAIForm } from "@sourced/react";
+import { AIFormShell, KitForm } from "@sourced/react/kit";
+import "@sourced/react/kit.css";
 import { profileForm } from "./profile-form";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
@@ -54,9 +54,9 @@ export function Profile() {
 | `SubmitSummary`, `SubmitSummaryProps` | Shows provenance counts, blockers, clear-AI, and submit controls. |
 | `REACT_VERSION`, `CORE_VERSION` | React and linked core version constants. |
 
-## `@ai-native-forms/react/kit`
+## `@sourced/react/kit`
 
-Import `@ai-native-forms/react/kit.css` once to use the default styles.
+Import `@sourced/react/kit.css` once to use the default styles.
 
 | Export | Description |
 | --- | --- |
@@ -69,10 +69,10 @@ Import `@ai-native-forms/react/kit.css` once to use the default styles.
 | `KitReviewBar`, `KitReviewBarProps` | Styled review controls. |
 | `KitSubmitSummary`, `KitSubmitSummaryProps` | Styled provenance summary and guarded submit action. |
 
-## `@ai-native-forms/react/pdf`
+## `@sourced/react/pdf`
 
 ```ts
-import { createPdfExtractor } from "@ai-native-forms/react/pdf";
+import { createPdfExtractor } from "@sourced/react/pdf";
 
 const extractor = createPdfExtractor({ worker: true });
 ```

@@ -1,4 +1,4 @@
-# `@ai-native-forms/core`
+# `@sourced/core`
 
 Framework-agnostic form definitions, validation, evidence location, state, selectors, and streaming transport. This package is safe to use in browser or server code.
 
@@ -9,7 +9,7 @@ import {
   createFetchTransport,
   defineForm,
   serializeForm,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 
 const form = defineForm({
   id: "profile",

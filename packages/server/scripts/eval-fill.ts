@@ -7,7 +7,7 @@ import {
   type FillRequest,
   type FormDefinition,
   serializeForm,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 import {
   type GoldField,
   type IntakeName,
@@ -20,7 +20,7 @@ import {
   loadResume,
   medicalIntakeForm,
   type ResumeName,
-} from "@ai-native-forms/examples";
+} from "@sourced/examples";
 
 import { fill } from "../src/fill";
 import type { ModelAdapter } from "../src/model/adapter";
@@ -109,7 +109,7 @@ function parseArgs(args: string[]): CliOptions {
     form,
     models: models.length
       ? models
-      : [process.env.AI_FORMS_MODEL ?? "z-ai/glm-5.3-flash"],
+      : [process.env.SOURCED_MODEL ?? "z-ai/glm-5.3-flash"],
     efforts: efforts.length ? efforts : [undefined],
     fixture,
     record,

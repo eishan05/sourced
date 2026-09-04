@@ -15,7 +15,9 @@ test("completes the Priya application with the fake transport", async ({
     await page.getByRole("button", { name: "Sources (0)" }).click();
   }
   await page.getByRole("button", { name: "Load Priya" }).click();
-  await expect(page.getByText("9 fields filled, 3 suggested. Review them.")).toBeVisible();
+  await expect(
+    page.getByText("9 fields filled, 3 suggested. Review them."),
+  ).toBeVisible();
   if (testInfo.project.name === "mobile-390") {
     await page.getByRole("button", { name: "Sources (1)" }).click();
   }

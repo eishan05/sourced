@@ -1,4 +1,4 @@
-import type { SubmitBlocker } from "@ai-native-forms/core";
+import type { SubmitBlocker } from "@sourced/core";
 
 import { useAIFormApi } from "../context";
 import type { AIFormApi } from "../useAIForm";

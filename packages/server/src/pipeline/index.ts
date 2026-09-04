@@ -1,4 +1,4 @@
-import type { FillEvent, Proposal } from "@ai-native-forms/core";
+import type { FillEvent, Proposal } from "@sourced/core";
 
 import type { FillItem } from "../schema";
 import { coerceItem } from "./coerce";

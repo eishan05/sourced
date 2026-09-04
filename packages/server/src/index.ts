@@ -1,4 +1,4 @@
-export { CORE_VERSION } from "@ai-native-forms/core";
+export { CORE_VERSION } from "@sourced/core";
 
 export * from "./fill";
 export * from "./handler";

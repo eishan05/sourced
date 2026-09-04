@@ -1,4 +1,4 @@
-import { normalizeValue, policyOf, type Question } from "@ai-native-forms/core";
+import { normalizeValue, policyOf, type Question } from "@sourced/core";
 import { useMemo, useState } from "react";
 
 import { useAIFormApi, useField } from "../context";

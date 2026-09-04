@@ -4,7 +4,7 @@ import {
   normalizePhone,
   normalizeValue,
   validateField,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 
 import type {
   CoercedItem,

@@ -2,7 +2,7 @@ import type {
   SerializedFieldDefinition,
   SerializedFormDefinition,
   Source,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 
 import type { PipelineContext } from "./types";
 

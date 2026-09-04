@@ -1,4 +1,4 @@
-import { policyOf } from "@ai-native-forms/core";
+import { policyOf } from "@sourced/core";
 import type { ReactNode } from "react";
 
 import { useAIFormApi } from "../context";

@@ -1,9 +1,5 @@
-import {
-  createSource,
-  type FillTransport,
-  type Span,
-} from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples/forms";
+import { createSource, type FillTransport, type Span } from "@sourced/core";
+import { jobApplicationForm } from "@sourced/examples/forms";
 import {
   act,
   cleanup,

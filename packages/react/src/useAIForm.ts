@@ -30,7 +30,7 @@ import {
   submitSummary,
   type ValidationIssue,
   values,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 import {
   type Dispatch,
   type SetStateAction,
@@ -698,9 +698,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
         const extractor =
           pdfExtractorRef.current ??
           (async (data: ArrayBuffer) => {
-            const { createPdfExtractor } = await import(
-              "@ai-native-forms/react/pdf"
-            );
+            const { createPdfExtractor } = await import("@sourced/react/pdf");
             return createPdfExtractor()(data);
           });
         const extracted = await extractor(await file.arrayBuffer());

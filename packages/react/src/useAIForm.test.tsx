@@ -3,8 +3,8 @@ import type {
   FillRequest,
   FillTransport,
   Proposal,
-} from "@ai-native-forms/core";
-import { jobApplicationForm } from "@ai-native-forms/examples/forms";
+} from "@sourced/core";
+import { jobApplicationForm } from "@sourced/examples/forms";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { describe, expect, it, vi } from "vitest";

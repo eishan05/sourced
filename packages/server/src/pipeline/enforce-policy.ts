@@ -2,7 +2,7 @@ import {
   type FieldValue,
   normalizeTextForQuoteLocation,
   policyOf,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 
 import type {
   EnforcedItem,

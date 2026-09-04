@@ -1,8 +1,4 @@
-import {
-  defineForm,
-  type FillEvent,
-  type FillTransport,
-} from "@ai-native-forms/core";
+import { defineForm, type FillEvent, type FillTransport } from "@sourced/core";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";

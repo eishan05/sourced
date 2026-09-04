@@ -3,7 +3,7 @@ import {
   type FieldValue,
   type FillEvent,
   type FillTransport,
-} from "@ai-native-forms/core";
+} from "@sourced/core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";

@@ -3,7 +3,7 @@ export default function Home() {
     <main className="flex min-h-screen items-center bg-zinc-950 px-6 text-zinc-100">
       <div className="mx-auto w-full max-w-4xl py-24">
         <p className="font-mono text-sm tracking-[0.2em] text-amber-400 uppercase">
-          ai-native-forms
+          sourced
         </p>
         <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-tight sm:text-7xl">
           Forms that start with the evidence.

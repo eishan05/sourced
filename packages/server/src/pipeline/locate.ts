@@ -1,4 +1,4 @@
-import { locateQuote, type Source, type Span } from "@ai-native-forms/core";
+import { locateQuote, type Source, type Span } from "@sourced/core";
 
 import type {
   CoercedItem,

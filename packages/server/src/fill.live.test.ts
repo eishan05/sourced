@@ -6,12 +6,8 @@ import {
   type FillEvent,
   type FillRequest,
   serializeForm,
-} from "@ai-native-forms/core";
-import {
-  jobApplicationForm,
-  loadGold,
-  loadResume,
-} from "@ai-native-forms/examples";
+} from "@sourced/core";
+import { jobApplicationForm, loadGold, loadResume } from "@sourced/examples";
 import { expect, it } from "vitest";
 
 import { fill } from "./fill";
@@ -22,7 +18,7 @@ const envPath = fileURLToPath(
 );
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 
-const model = process.env.AI_FORMS_MODEL ?? "z-ai/glm-5.3-flash";
+const model = process.env.SOURCED_MODEL ?? "z-ai/glm-5.3-flash";
 const thresholds: Record<string, { coverage: number; extractedRate: number }> =
   {
     "openai/gpt-5.6-luna": { coverage: 0.7, extractedRate: 0.7 },
