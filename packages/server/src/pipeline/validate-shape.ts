@@ -90,7 +90,15 @@ export function validateShape(
   }
 
   if (item.kind === "proposal") {
-    const raw = field.type === "multiselect" ? item.values : item.value;
+    if (
+      item.value !== undefined &&
+      (item.value.trim() === "" ||
+        item.value.trim().toLowerCase() === "no_evidence")
+    ) {
+      return { ok: true, value: { kind: "no_evidence", fieldId } };
+    }
+    const raw =
+      field.type === "multiselect" ? (item.values ?? item.value) : item.value;
     if (!item.basis || raw === undefined) {
       return dropped(context, "malformed", fieldId, "invalid proposal");
     }

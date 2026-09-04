@@ -41,7 +41,7 @@ export const { POST } = createNextFillRoute({
 | `ModelStreamEvent` | Adapter event union. |
 | `createOpenRouterAdapter` | Creates the default OpenRouter-backed AI SDK adapter. |
 | `OpenRouterAdapterOptions` | API key, model, effort, and parameter-routing options. |
-| `OpenRouterReasoningEffort` | `none`, `low`, `medium`, or `high`. |
+| `OpenRouterReasoningEffort` | `none`, `minimal`, `low`, `medium`, or `high`. |
 | `createAISDKAdapter` | Wraps any AI SDK `LanguageModel` as a `ModelAdapter`. |
 | `createFakeAdapter` | Replays scripted items, delays, errors, and optional usage for tests. |
 

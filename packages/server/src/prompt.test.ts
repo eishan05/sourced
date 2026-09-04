@@ -31,6 +31,8 @@ describe("buildPrompt", () => {
     );
     expect(result.system).toContain('"kind":"question"');
     expect(result.system).toContain('"kind":"flag"');
+    expect(result.system).toContain('"values":["typescript","node-js"]');
+    expect(result.system).toContain('"value":"2019"');
     expect(result.system).toContain('"startDate","gradYear"');
   });
 

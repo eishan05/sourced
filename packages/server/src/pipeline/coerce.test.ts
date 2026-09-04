@@ -39,6 +39,19 @@ describe("coerceItem", () => {
     expect(result).toMatchObject({ ok: true, value: { value: "engineer" } });
   });
 
+  it("matches select options leniently", () => {
+    const result = coerceItem(
+      {
+        kind: "proposal",
+        fieldId: "workMode",
+        basis: "inferred",
+        raw: "in-office",
+      },
+      makeContext(),
+    );
+    expect(result).toMatchObject({ ok: true, value: { value: "office" } });
+  });
+
   it("coerces multiselect values", () => {
     const result = coerceItem(
       {

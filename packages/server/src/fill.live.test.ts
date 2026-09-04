@@ -22,11 +22,11 @@ const envPath = fileURLToPath(
 );
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 
-const model = process.env.AI_FORMS_MODEL ?? "openai/gpt-5.6-luna";
+const model = process.env.AI_FORMS_MODEL ?? "z-ai/glm-5.3-flash";
 const thresholds: Record<string, { coverage: number; extractedRate: number }> =
   {
     "openai/gpt-5.6-luna": { coverage: 0.7, extractedRate: 0.7 },
-    "z-ai/glm-5.3-flash": { coverage: 0.7, extractedRate: 0.7 },
+    "z-ai/glm-5.3-flash": { coverage: 0.9, extractedRate: 0.9 },
   };
 
 it.skipIf(!process.env.OPENROUTER_API_KEY)(

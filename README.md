@@ -119,9 +119,9 @@ Submit is blocked while any visible field has an unreviewed AI value, unanswered
 `createOpenRouterAdapter()` reads:
 
 - `OPENROUTER_API_KEY` (required): your OpenRouter API key; keep it server-only.
-- `AI_FORMS_MODEL` (optional): model ID; default `openai/gpt-5.6-luna`.
+- `AI_FORMS_MODEL` (optional): model ID; default `z-ai/glm-5.3-flash`.
 
-Reasoning effort can be `none`, `low`, `medium`, or `high`:
+Reasoning effort can be `none`, `minimal`, `low`, `medium`, or `high`:
 
 ```ts
 const adapter = createOpenRouterAdapter({
@@ -130,7 +130,9 @@ const adapter = createOpenRouterAdapter({
 });
 ```
 
-Luna defaults to `none`. Pass `effort: null` to leave effort unset. `requireParameters` defaults to `true` so OpenRouter chooses providers that support the requested structured parameters.
+GLM Flash defaults to `minimal`. For higher quality at higher latency and cost, use `openai/gpt-5.6-luna`, which defaults to `none`. Pass `effort: null` to leave effort unset. `requireParameters` defaults to `true` so OpenRouter chooses providers that support the requested structured parameters.
+
+GLM Flash is served by many OpenRouter providers with very different speeds, so the adapter asks for `Friendli`, then `Together`, then `Fireworks` first (about 1 s to the first field, 3 s overall on the bundled resumes) and lets OpenRouter fall back to the rest. Pass `routing: { order: [...] }` to choose your own providers, or `routing: null` to use OpenRouter's default routing.
 
 To bring any AI SDK `LanguageModel`, adapt it directly:
 
@@ -175,7 +177,7 @@ Choose the medical intake form, model, effort, or one fixture:
 
 ```sh
 pnpm --filter @ai-native-forms/server eval:fill -- --form medical-intake
-pnpm --filter @ai-native-forms/server eval:fill -- --model openai/gpt-5.6-luna --effort none
+pnpm --filter @ai-native-forms/server eval:fill -- --model z-ai/glm-5.3-flash --effort minimal
 pnpm --filter @ai-native-forms/server eval:fill -- --form medical-intake --fixture maya
 ```
 

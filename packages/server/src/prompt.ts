@@ -25,10 +25,11 @@ export function buildPrompt(
 ${modeInstruction}
 Ask only when sources contain two or more candidates for a field, or a required field has no evidence. Emit at most 5 questions. Every option must include the candidate's verbatim quote and sourceId. Put inconsistency flags last; severity is "error" only for contradictions.
 
-Formats: dates YYYY-MM-DD (use the first of the month when only a month is known); booleans "true" or "false"; numbers as digits; select values must be option values; multiselect uses values containing option values. Today is ${req.today}.
+Formats: dates YYYY-MM-DD (use the first of the month when only a month is known); booleans "true" or "false"; numbers go in value as a digit string, e.g. "value":"2019"; select values must be option values; multiselect uses values containing option values. Today is ${req.today}.
 
 Examples:
 Source: "Email: ada@example.com" -> {"kind":"proposal","fieldId":"email","basis":"extracted","value":"ada@example.com","sourceId":"resume","quote":"ada@example.com"}
+Source: "Skills: TypeScript, Node.js" -> {"kind":"proposal","fieldId":"skills","basis":"extracted","values":["typescript","node-js"],"sourceId":"resume","quote":"TypeScript, Node.js"}
 Source: "Engineer, Jan 2020 - Present" -> {"kind":"proposal","fieldId":"currentlyEmployed","basis":"inferred","value":"true","sourceId":"resume","quote":"Present","rationale":"The current role ends in Present"}
 Source: "Acme Corp ... Acme Labs" -> {"kind":"question","fieldId":"employer","question":"Which is the employer?","options":[{"label":"Acme Corp","value":"Acme Corp","sourceId":"resume","quote":"Acme Corp"},{"label":"Acme Labs","value":"Acme Labs","sourceId":"resume","quote":"Acme Labs"}],"allowFreeText":true}
 Current values: {"startDate":"2016-01-01","gradYear":2019} -> {"kind":"flag","fieldIds":["startDate","gradYear"],"message":"The employment start date is before the graduation year. Is that right?","severity":"error"}${strictReminder}`;

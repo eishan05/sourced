@@ -245,6 +245,123 @@ describe("fill", () => {
     expect(events.some((event) => event.type === "question")).toBe(false);
   });
 
+  it.each([
+    {
+      format: "comma-separated value",
+      item: {
+        kind: "proposal",
+        fieldId: "skills",
+        basis: "extracted",
+        value: "typescript, Nodejs, typescript",
+      },
+    },
+    {
+      format: "JSON-encoded value",
+      item: {
+        kind: "proposal",
+        fieldId: "skills",
+        basis: "extracted",
+        value: '["typescript","Node.js","typescript"]',
+      },
+    },
+    {
+      format: "values array",
+      item: {
+        kind: "proposal",
+        fieldId: "skills",
+        basis: "extracted",
+        values: ["typescript", "Node.js", "typescript"],
+      },
+    },
+  ])("coerces a multiselect $format", async ({ item }) => {
+    const events = await collect(
+      fill(request(), {
+        adapter: createFakeAdapter([
+          {
+            ...item,
+            sourceId: "priya",
+            quote: "TypeScript, React, Node.js, SQL, AWS, Docker, Kubernetes",
+          },
+        ]),
+      }),
+    );
+
+    expect(events.find((event) => event.type === "proposal")).toMatchObject({
+      type: "proposal",
+      proposal: {
+        fieldId: "skills",
+        value: ["typescript", "node-js"],
+      },
+    });
+  });
+
+  it("drops unknown multiselect entries and deduplicates known ones", async () => {
+    const events = await collect(
+      fill(request(), {
+        adapter: createFakeAdapter([
+          {
+            kind: "proposal",
+            fieldId: "skills",
+            basis: "extracted",
+            value: "TypeScript; COBOL\nNode.js; typescript",
+            sourceId: "priya",
+            quote: "TypeScript, React, Node.js, SQL, AWS, Docker, Kubernetes",
+          },
+        ]),
+      }),
+    );
+
+    expect(events.find((event) => event.type === "proposal")).toMatchObject({
+      type: "proposal",
+      proposal: { value: ["typescript", "node-js"] },
+    });
+  });
+
+  it("drops an all-unknown multiselect with a useful detail", async () => {
+    const events = await collect(
+      fill(request(), {
+        adapter: createFakeAdapter([
+          {
+            kind: "proposal",
+            fieldId: "skills",
+            basis: "inferred",
+            value: "COBOL, Fortran",
+          },
+          { kind: "no_evidence", fieldId: "phone" },
+        ]),
+      }),
+    );
+
+    expect(events).toContainEqual({
+      type: "dropped",
+      fillId: expect.any(String),
+      fieldId: "skills",
+      reason: "invalid_value",
+      detail: "no known options",
+    });
+  });
+
+  it.each([
+    { fieldId: "phone", value: " NO_EVIDENCE " },
+    { fieldId: "gradYear", value: "" },
+  ])(
+    "turns a $fieldId proposal with a sentinel value into no_evidence",
+    async ({ fieldId, value }) => {
+      const events = await collect(
+        fill(request(), {
+          adapter: createFakeAdapter([{ kind: "proposal", fieldId, value }]),
+        }),
+      );
+
+      expect(events.map((event) => event.type)).toEqual([
+        "start",
+        "no_evidence",
+        "done",
+      ]);
+      expect(events[1]).toMatchObject({ type: "no_evidence", fieldId });
+    },
+  );
+
   it("locates every quoted option emitted by the model", async () => {
     const events = await collect(
       fill(request(), {
@@ -330,6 +447,85 @@ describe("fill", () => {
       message: "model returned no items",
       retryable: true,
     });
+  });
+
+  it("times out twice before returning the empty-response error", async () => {
+    let calls = 0;
+    const delayed = createFakeAdapter([
+      { delayMs: 30 },
+      { kind: "no_evidence", fieldId: "phone" },
+    ]);
+    const adapter: ModelAdapter = {
+      streamItems(input) {
+        calls += 1;
+        return delayed.streamItems(input);
+      },
+    };
+
+    const events = await collect(
+      fill(request(), { adapter, firstItemTimeoutMs: 5 }),
+    );
+
+    expect(calls).toBe(2);
+    expect(events.map((event) => event.type)).toEqual(["start", "error"]);
+    expect(events.at(-1)).toMatchObject({
+      message: "model returned no items",
+      retryable: true,
+    });
+  });
+
+  it("does not time out after an item arrives in time", async () => {
+    let calls = 0;
+    const timely = createFakeAdapter([
+      { delayMs: 1 },
+      { kind: "no_evidence", fieldId: "phone" },
+      { delayMs: 20 },
+    ]);
+    const adapter: ModelAdapter = {
+      streamItems(input) {
+        calls += 1;
+        return timely.streamItems(input);
+      },
+    };
+
+    const events = await collect(
+      fill(request(), { adapter, firstItemTimeoutMs: 10 }),
+    );
+
+    expect(calls).toBe(1);
+    expect(events.map((event) => event.type)).toEqual([
+      "start",
+      "no_evidence",
+      "done",
+    ]);
+  });
+
+  it("returns silently when the client aborts before the first item", async () => {
+    let calls = 0;
+    const controller = new AbortController();
+    const delayed = createFakeAdapter([
+      { delayMs: 100 },
+      { kind: "no_evidence", fieldId: "phone" },
+    ]);
+    const adapter: ModelAdapter = {
+      streamItems(input) {
+        calls += 1;
+        return delayed.streamItems(input);
+      },
+    };
+    const eventsPromise = collect(
+      fill(request(), {
+        adapter,
+        signal: controller.signal,
+        firstItemTimeoutMs: 1_000,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    controller.abort();
+
+    const events = await eventsPromise;
+    expect(calls).toBe(1);
+    expect(events.map((event) => event.type)).toEqual(["start"]);
   });
 
   it("rejects oversized sources without calling the adapter", async () => {

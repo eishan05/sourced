@@ -13,11 +13,13 @@ import { FillItemSchema, FillRequestSchema } from "./schema";
 
 const DEFAULT_PER_SOURCE_CHARS = 60_000;
 const DEFAULT_TOTAL_SOURCE_CHARS = 150_000;
+const DEFAULT_FIRST_ITEM_TIMEOUT_MS = 25_000;
 
 export interface FillOptions {
   adapter: ModelAdapter;
   maxSourceChars?: number;
   maxQuestions?: number;
+  firstItemTimeoutMs?: number;
   idGen?: () => string;
   signal?: AbortSignal;
 }
@@ -105,15 +107,34 @@ export async function* fill(
   let hasUsage = false;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (opts.signal?.aborted) return;
     let validItems = 0;
+    let receivedItem = false;
+    let timedOut = false;
+    const attemptController = new AbortController();
+    const signal = opts.signal
+      ? AbortSignal.any([opts.signal, attemptController.signal])
+      : attemptController.signal;
+    const timeout = setTimeout(
+      () => {
+        timedOut = true;
+        attemptController.abort();
+      },
+      Math.max(0, opts.firstItemTimeoutMs ?? DEFAULT_FIRST_ITEM_TIMEOUT_MS),
+    );
     const prompt = buildPrompt(req, { strictReminder: attempt === 1 });
     try {
       for await (const modelEvent of opts.adapter.streamItems({
         ...prompt,
-        signal: opts.signal,
+        signal,
       })) {
         if (opts.signal?.aborted) {
           return;
+        }
+        if (timedOut && !receivedItem) break;
+        if (modelEvent.type === "item" && !receivedItem) {
+          receivedItem = true;
+          clearTimeout(timeout);
         }
         if (modelEvent.type === "usage") {
           hasUsage = true;
@@ -176,14 +197,20 @@ export async function* fill(
       if (opts.signal?.aborted) {
         return;
       }
-      yield {
-        type: "error",
-        fillId,
-        message: errorMessage(error),
-        retryable: true,
-      };
-      return;
+      if (!timedOut) {
+        yield {
+          type: "error",
+          fillId,
+          message: errorMessage(error),
+          retryable: true,
+        };
+        return;
+      }
+    } finally {
+      clearTimeout(timeout);
     }
+
+    if (opts.signal?.aborted) return;
 
     // In check mode an empty response means "nothing to flag", not a failure.
     if (validItems > 0 || req.mode === "check") {

@@ -7,3 +7,6 @@ coverage
 *.tsbuildinfo
 apps/playground/e2e/__screenshots__/
 .DS_Store
+
+# playwright-cli scratch output
+.playwright-cli/

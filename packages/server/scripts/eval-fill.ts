@@ -93,6 +93,7 @@ function parseArgs(args: string[]): CliOptions {
         efforts.push(null);
       } else if (
         effort === "none" ||
+        effort === "minimal" ||
         effort === "low" ||
         effort === "medium" ||
         effort === "high"
@@ -108,7 +109,7 @@ function parseArgs(args: string[]): CliOptions {
     form,
     models: models.length
       ? models
-      : [process.env.AI_FORMS_MODEL ?? "openai/gpt-5.6-luna"],
+      : [process.env.AI_FORMS_MODEL ?? "z-ai/glm-5.3-flash"],
     efforts: efforts.length ? efforts : [undefined],
     fixture,
     record,
