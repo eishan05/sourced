@@ -55,7 +55,7 @@ export function createOpenRouterAdapter(
 
   const openrouter = createOpenRouter({ apiKey, compatibility: "strict" });
   const modelId =
-    opts.model ?? process.env.SOURCED_MODEL ?? "z-ai/glm-5.3-flash";
+    opts.model ?? process.env.SOURCED_MODEL ?? "openai/gpt-5.6-luna";
   const defaults = MODEL_DEFAULTS[modelId];
   const configuredEffort =
     opts.effort === null ? undefined : (opts.effort ?? defaults?.effort);

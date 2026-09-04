@@ -18,10 +18,10 @@ const envPath = fileURLToPath(
 );
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 
-const model = process.env.SOURCED_MODEL ?? "z-ai/glm-5.3-flash";
+const model = process.env.SOURCED_MODEL ?? "openai/gpt-5.6-luna";
 const thresholds: Record<string, { coverage: number; extractedRate: number }> =
   {
-    "openai/gpt-5.6-luna": { coverage: 0.7, extractedRate: 0.7 },
+    "openai/gpt-5.6-luna": { coverage: 0.9, extractedRate: 0.9 },
     "z-ai/glm-5.3-flash": { coverage: 0.9, extractedRate: 0.9 },
   };
 

@@ -109,7 +109,7 @@ function parseArgs(args: string[]): CliOptions {
     form,
     models: models.length
       ? models
-      : [process.env.SOURCED_MODEL ?? "z-ai/glm-5.3-flash"],
+      : [process.env.SOURCED_MODEL ?? "openai/gpt-5.6-luna"],
     efforts: efforts.length ? efforts : [undefined],
     fixture,
     record,

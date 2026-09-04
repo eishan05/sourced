@@ -119,7 +119,7 @@ Submit is blocked while any visible field has an unreviewed AI value, unanswered
 `createOpenRouterAdapter()` reads:
 
 - `OPENROUTER_API_KEY` (required): your OpenRouter API key; keep it server-only.
-- `SOURCED_MODEL` (optional): model ID; default `z-ai/glm-5.3-flash`.
+- `SOURCED_MODEL` (optional): model ID; default `openai/gpt-5.6-luna`.
 
 Reasoning effort can be `none`, `minimal`, `low`, `medium`, or `high`:
 
@@ -130,9 +130,9 @@ const adapter = createOpenRouterAdapter({
 });
 ```
 
-GLM Flash defaults to `minimal`. For higher quality at higher latency and cost, use `openai/gpt-5.6-luna`, which defaults to `none`. Pass `effort: null` to leave effort unset. `requireParameters` defaults to `true` so OpenRouter chooses providers that support the requested structured parameters.
+Luna defaults to `none` (no reasoning). For a cheaper, faster option use `z-ai/glm-5.3-flash`, which defaults to `minimal` because it rejects `none`. Pass `effort: null` to leave effort unset. `requireParameters` defaults to `true` so OpenRouter chooses providers that support the requested structured parameters.
 
-GLM Flash is served by many OpenRouter providers with very different speeds, so the adapter asks for `Friendli`, then `Together`, then `Fireworks` first (about 1 s to the first field, 3 s overall on the bundled resumes) and lets OpenRouter fall back to the rest. Pass `routing: { order: [...] }` to choose your own providers, or `routing: null` to use OpenRouter's default routing.
+`z-ai/glm-5.3-flash` is served by many OpenRouter providers with very different speeds, so the adapter asks for `Friendli`, then `Together`, then `Fireworks` first (about 1 s to the first field, 3 s overall on the bundled resumes) and lets OpenRouter fall back to the rest. Pass `routing: { order: [...] }` to choose your own providers, or `routing: null` to use OpenRouter's default routing.
 
 To bring any AI SDK `LanguageModel`, adapt it directly:
 
