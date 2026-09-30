@@ -212,6 +212,16 @@ export async function* fill(
 
     if (opts.signal?.aborted) return;
 
+    if (timedOut && req.mode === "check") {
+      yield {
+        type: "error",
+        fillId,
+        message: "Check timed out before receiving a result",
+        retryable: true,
+      };
+      return;
+    }
+
     // In check mode an empty response means "nothing to flag", not a failure.
     if (validItems > 0 || req.mode === "check") {
       yield {

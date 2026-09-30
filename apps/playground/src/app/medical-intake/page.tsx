@@ -10,6 +10,7 @@ import {
   KitSourcePane,
 } from "@sourced/react/kit";
 import { useState } from "react";
+import { submitDemo } from "../submit-demo";
 
 const transport = createFetchTransport("/api/ai-forms/fill");
 
@@ -29,7 +30,8 @@ export default function MedicalIntakePage() {
     form: medicalIntakeForm,
     transport,
     autoFillOnSource: true,
-    onSubmit: (values) => setSubmittedValues(values),
+    onSubmit: async (values) =>
+      setSubmittedValues(await submitDemo(medicalIntakeForm, values)),
   });
 
   const loadSample = async (name: string): Promise<void> => {
@@ -104,7 +106,8 @@ export default function MedicalIntakePage() {
           <KitForm>
             {api.submit.status === "submitted" && submittedValues ? (
               <section className="anf-submitted">
-                <h2>Submitted</h2>
+                <h2>Validated on server</h2>
+                <p>This demo does not save submissions.</p>
                 <pre>{JSON.stringify(submittedValues, null, 2)}</pre>
               </section>
             ) : null}

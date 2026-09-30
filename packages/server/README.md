@@ -20,6 +20,18 @@ export const { POST } = createNextFillRoute({
 
 ## Exports
 
+### Final submission validation
+
+`validateSubmission(form, input)` takes a trusted server-owned form and an unknown values payload. It returns `SubmissionValidation`: `{ success: true, values }` or `{ success: false, issues: SubmissionIssue[] }`. Each issue includes a code, message, severity, and optional `fieldId`. It rejects unknown keys and malformed payloads, validates visible fields without coercion (including custom validators), omits hidden fields, and supplies `null` for missing optional values.
+
+This helper does not authenticate, persist, or certify AI review. See the [integration example](../../docs/submissions.md). The fill handler enforces policies from its supplied definition; protect the route and resolve trusted definitions in your host application where policy integrity is required.
+
+### Evidence and check failures
+
+Extraction uses deterministic matching against located source text for every field type. Numeric and date quotes must be complete expressions; booleans must be explicit; options must match declared labels or values. Unsupported values become inferences or questions according to field policy. Supported date normalization is exposed in provenance. Quote matching does not prove semantic correctness.
+
+A normally completed empty check returns `done`. A first-result timeout returns a retryable `error`, never a successful empty check. Run live model tests separately with `pnpm --filter @sourced/server test:live`; ordinary tests do not contact providers.
+
 ### Fill and HTTP
 
 | Export | Description |

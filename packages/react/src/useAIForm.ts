@@ -49,6 +49,7 @@ export interface UseAIFormOptions {
   today?: string;
   autoFillOnSource?: boolean;
   checkBeforeSubmit?: boolean;
+  checkFailurePolicy?: "block" | "allow";
   pdfExtractor?: (
     data: ArrayBuffer,
   ) => Promise<{ text: string; pageTexts: string[] }>;
@@ -188,6 +189,7 @@ export interface AIFormApi {
     end(): void;
   };
   submit: {
+    checking: boolean;
     request(): Promise<void>;
     status: FormState["submit"]["status"];
     blockers: SubmitBlocker[];
@@ -312,11 +314,15 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const onSubmitRef = useRef(options.onSubmit);
   const pdfExtractorRef = useRef(options.pdfExtractor);
   const checkBeforeSubmitRef = useRef(options.checkBeforeSubmit !== false);
+  const checkFailurePolicyRef = useRef(options.checkFailurePolicy ?? "block");
+  const submissionPendingRef = useRef(false);
+  const [submitChecking, setSubmitChecking] = useState(false);
   const todayRef = useRef(options.today ?? localDate());
   transportRef.current = options.transport;
   onSubmitRef.current = options.onSubmit;
   pdfExtractorRef.current = options.pdfExtractor;
   checkBeforeSubmitRef.current = options.checkBeforeSubmit !== false;
+  checkFailurePolicyRef.current = options.checkFailurePolicy ?? "block";
 
   const [activeSpan, setActiveSpan] = useState<Span | null>(null);
   const [selection, setSelection] = useState<SourceSelection | null>(null);
@@ -741,27 +747,45 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
   const clearActiveSpan = useCallback(() => setActiveSpan(null), []);
 
   const requestSubmit = useCallback(async (): Promise<void> => {
-    if (store.getState().submit.status === "submitting") return;
+    if (
+      submissionPendingRef.current ||
+      store.getState().submit.status === "submitting"
+    )
+      return;
     if (submitBlockers(store.getState()).length > 0) return;
-
-    if (checkBeforeSubmitRef.current) {
-      const result = await executeRun("check");
-      if (result.status === "cancelled" || result.status === "busy") return;
-      if (
-        result.status === "done" &&
-        submitBlockers(store.getState()).some(
-          (blocker) => blocker.reason === "flag",
-        )
-      ) {
-        return;
-      }
-    }
-
-    store.dispatch({ type: "SUBMIT_REQUESTED" });
-    const submittingState = store.getState();
-    if (submittingState.submit.status !== "submitting") return;
-
+    submissionPendingRef.current = true;
     try {
+      if (checkBeforeSubmitRef.current) {
+        const snapshot = () => {
+          const current = store.getState();
+          return JSON.stringify({
+            values: values(current),
+            sources: current.sources,
+          });
+        };
+        const checkedSnapshot = snapshot();
+        setSubmitChecking(true);
+        const result = await executeRun("check");
+        setSubmitChecking(false);
+        if (result.status === "cancelled" || result.status === "busy") return;
+        if (
+          result.status === "error" &&
+          checkFailurePolicyRef.current === "block"
+        ) {
+          throw new Error(
+            "The AI check could not complete. Retry before submitting.",
+          );
+        }
+        if (checkedSnapshot !== snapshot()) {
+          throw new Error(
+            "The form or sources changed during checking. Submit again to check the latest answers.",
+          );
+        }
+      }
+      if (submitBlockers(store.getState()).length > 0) return;
+      store.dispatch({ type: "SUBMIT_REQUESTED" });
+      const submittingState = store.getState();
+      if (submittingState.submit.status !== "submitting") return;
       await onSubmitRef.current?.(
         values(submittingState),
         submitSummary(submittingState),
@@ -772,6 +796,9 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
         type: "SUBMIT_FAILED",
         error: errorMessage(error).slice(0, 500),
       });
+    } finally {
+      setSubmitChecking(false);
+      submissionPendingRef.current = false;
     }
   }, [executeRun, store]);
 
@@ -1093,6 +1120,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
         },
       },
       submit: {
+        checking: submitChecking,
         request: requestSubmit,
         status: state.submit.status,
         blockers: submitBlockers(state),
@@ -1108,6 +1136,7 @@ export function useAIForm(options: UseAIFormOptions): AIFormApi {
     addText,
     cancelFill,
     checkState,
+    submitChecking,
     clearUserNormalization,
     clearActiveSpan,
     dropped,

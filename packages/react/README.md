@@ -29,6 +29,10 @@ export function Profile() {
 
 ## Root exports
 
+Pre-submit checking blocks on failure by default. `checkFailurePolicy: "allow"` explicitly allows submission during check errors, while preserving all ordinary review and validation blockers; the kit displays the failed-check notice. `checkBeforeSubmit: false` skips checks. This changes the previous default that allowed submission after a check error.
+
+`api.submit.checking` is true while the pre-submit check runs. The kit disables submission and shows “Checking…”. Failed checks can be retried with Submit; changed values or sources invalidate the check and require another attempt. The existing `onSubmit(values, summary)` callback runs only after those guards pass; it should await your server endpoint and throw on failure. See the [submission integration example](../../docs/submissions.md).
+
 | Export | Description |
 | --- | --- |
 | `useAIForm`, `UseAIFormOptions`, `AIFormApi` | Owns sources, streaming runs, fields, review, checks, and submission. |

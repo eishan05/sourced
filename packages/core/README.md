@@ -57,6 +57,7 @@ for await (const event of transport(request)) console.log(event);
 | `SerializedFieldDefinition`, `SerializedFormDefinition` | Wire-safe definitions without custom validators. |
 | `FieldIds` | Extracts a literal union of field IDs from a typed form. |
 | `ValidationIssue` | A validation code, message, and error/warning severity. |
+| `FieldValidator` | The synchronous `safeParse` contract used by custom field validation; accepts Zod schemas without depending on their internal version types. |
 
 ### Sources, evidence, and normalization
 
@@ -66,7 +67,7 @@ for await (const event of transport(request)) console.log(event);
 | `locateQuote`, `QuoteLocationOptions`, `LocatedSpan` | Locates exact, normalized, or conservative fuzzy evidence in source text. |
 | `normalizeTextForQuoteLocation`, `NormalizedLocationText` | Produces normalized text plus offsets back to the original. |
 | `normalizeBoolean` | Parses common yes/no boolean strings. |
-| `normalizeDate`, `NormalizedDate` | Converts ISO, named, and relative dates using an explicit `today`. |
+| `normalizeDate`, `NormalizedDate` | Converts ISO, named, and relative dates using an explicit `today`; optional `fullMatch: true` requires one complete expression and rejects ranges or surrounding prose. |
 | `normalizeNumber`, `NormalizedNumber` | Parses localized separators and currency-decorated numbers. |
 | `normalizePhone` | Normalizes phone text, including US display formatting. |
 | `normalizeValue`, `NormalizeValueOptions`, `NormalizedValue` | Dispatches normalization based on a field definition. |

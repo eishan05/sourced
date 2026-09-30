@@ -4,7 +4,7 @@
 
 It is built around evidence and human control rather than a chat box. Extracted values point back to source spans, inferred values are visibly distinct, field policies constrain what the model may touch, and submission waits for review, answers, validation, and server-side checks.
 
-## 60-second Next.js quick start
+## Next.js quick start
 
 Install the three runtime packages:
 
@@ -61,6 +61,26 @@ export const { POST } = createNextFillRoute({
 });
 ```
 
+Add a validation-only endpoint at `app/api/contact/route.ts`:
+
+```ts
+import { validateSubmission } from "@sourced/server";
+import { contactForm } from "../../contact-form";
+
+export async function POST(request: Request) {
+  let input: unknown;
+  try {
+    input = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const result = validateSubmission(contactForm, input);
+  return Response.json(result, { status: result.success ? 200 : 422 });
+}
+```
+
+This endpoint validates without saving. For a real submission, follow the [authorization and persistence integration example](docs/submissions.md).
+
 Import the kit stylesheet once in `app/layout.tsx`, then render `app/page.tsx`:
 
 ```tsx
@@ -80,12 +100,25 @@ import { contactForm } from "./contact-form";
 const transport = createFetchTransport("/api/ai-forms/fill");
 
 export default function Page() {
-  const form = useAIForm({ form: contactForm, transport });
+  const form = useAIForm({
+    form: contactForm,
+    transport,
+    onSubmit: async (values) => {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      if (!response.ok) throw new Error("Server validation failed. Check your answers and retry.");
+    },
+  });
 
   return (
     <AIFormProvider api={form}>
       <AIFormShell>
-        <KitForm />
+        <KitForm>
+          {form.submit.status === "submitted" && <p>Validated on server. This example does not save submissions.</p>}
+        </KitForm>
       </AIFormShell>
     </AIFormProvider>
   );
@@ -98,8 +131,8 @@ Set `OPENROUTER_API_KEY`, run `pnpm dev`, paste some text into Sources, and add 
 
 Every populated value carries provenance:
 
-- `extracted`: grounded in a located source span. The UI can take the user back to the exact evidence.
-- `inferred`: derived, summarized, normalized, or guessed from evidence. It is marked separately and must be reviewed.
+- `extracted`: matched against a located source span, including supported formatting normalization. The UI can take the user back to the exact evidence.
+- `inferred`: derived, summarized, guessed, or not verifiable by deterministic matching. It is marked separately and must be reviewed.
 - `answered`: chosen by the user in response to an AI-generated ambiguity question.
 - `user`: typed by the user or deliberately copied from a source selection.
 - `prefill`: supplied by application code as an initial value.
@@ -112,7 +145,11 @@ Field `policy` is the server-enforced ceiling on AI behavior:
 
 The server does not trust model output. It validates the request and every streamed item, rejects unknown and `human` fields, coerces values to the declared type, checks constraints and option membership, locates quotes in supplied sources, downgrades ungrounded “extracted” claims, deduplicates proposals, caps questions, and enforces input limits. In `check` mode it drops every proposal with reason `check-mode`; only flags, questions, and `no_evidence` can pass through.
 
-Submit is blocked while any visible field has an unreviewed AI value, unanswered question, missing required value, validation error, or unacknowledged error flag. Warnings do not block. Hidden fields are excluded. By default the client runs a fresh server `check` immediately before `onSubmit`; persist and authorize the final values in your own server action or API.
+Numbers require a complete numeric quote; dates require one date expression normalized using `today`; booleans require explicit yes/no or true/false expressions. Choices must match declared option labels or values, and each multiselect value must be supported by the quoted list. Month-only dates retain the first-of-month convention and show normalization. Unsupported interpretations lose the extracted label. These checks establish correspondence to quoted text, not the truth or full meaning of the source.
+
+Submit is blocked while any visible field has an unreviewed AI value, unanswered question, missing required value, validation error, or unacknowledged error flag. Warnings do not block. Hidden fields do not create review blockers. By default the client runs a fresh server `check` immediately before `onSubmit` and blocks if it fails or if values or sources change during the check. The server submission validator excludes hidden fields from its returned values. Authorize and persist only server-validated values in your own server action or API.
+
+**Migration:** check failures previously allowed submission. The new default is `checkFailurePolicy: "block"`. Set `checkFailurePolicy: "allow"` to explicitly retain submission during AI outages; the kit displays a notice that checking did not complete. Existing blockers still apply. `checkBeforeSubmit: false` disables checking entirely. Neither setting replaces final server validation.
 
 ## Configuration
 
@@ -172,6 +209,8 @@ With `OPENROUTER_API_KEY` set, evaluate the default job-application fixtures:
 ```sh
 pnpm --filter @sourced/server eval:fill
 ```
+
+Normal `pnpm test` runs deterministic tests without contacting a model. Run credential-dependent model tests explicitly with `pnpm --filter @sourced/server test:live` after building the workspace packages.
 
 Choose the medical intake form, model, effort, or one fixture:
 

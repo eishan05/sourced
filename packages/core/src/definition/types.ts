@@ -1,5 +1,3 @@
-import type { ZodType } from "zod";
-
 export type FieldType =
   | "text"
   | "textarea"
@@ -36,6 +34,15 @@ export interface FieldConstraints {
   patternMessage?: string;
 }
 
+/** The synchronous safeParse contract, independent of Zod's internal version types. */
+export interface FieldValidator {
+  safeParse(
+    input: unknown,
+  ):
+    | { success: true }
+    | { success: false; error: { issues: ReadonlyArray<{ message: string }> } };
+}
+
 export interface FieldDefinition {
   id: string;
   type: FieldType;
@@ -46,7 +53,7 @@ export interface FieldDefinition {
   options?: FieldOption[];
   constraints?: FieldConstraints;
   showWhen?: Condition;
-  validate?: ZodType;
+  validate?: FieldValidator;
 }
 
 export interface SectionDefinition {

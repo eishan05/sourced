@@ -501,6 +501,143 @@ describe("useAIForm checks before submit", () => {
     workAuthorization: "citizen",
   };
 
+  it("blocks a truncated check and succeeds on retry", async () => {
+    let calls = 0;
+    const onSubmit = vi.fn();
+    const transport: FillTransport = async function* () {
+      calls++;
+      yield { type: "start", fillId: "check", targetFieldIds: [] };
+      if (calls > 1)
+        yield {
+          type: "done",
+          fillId: "check",
+          counts: { proposals: 0, flags: 0, questions: 0 },
+        };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        initialValues: completeValues,
+        onSubmit,
+      }),
+    );
+    await act(async () => result.current.submit.request());
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(result.current.submit.status).toBe("failed");
+    await act(async () => result.current.submit.request());
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(result.current.submit.status).toBe("submitted");
+  });
+
+  it("skips checking only when explicitly disabled", async () => {
+    const transport = vi.fn<FillTransport>(() => {
+      throw new Error("Must not run");
+    });
+    const onSubmit = vi.fn();
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        initialValues: completeValues,
+        onSubmit,
+        checkBeforeSubmit: false,
+      }),
+    );
+    await act(async () => result.current.submit.request());
+    expect(transport).not.toHaveBeenCalled();
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it.each(["unchanged", "values", "sources"])(
+    "guards concurrent submission with %s during checking",
+    async (change) => {
+      let release = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const transport = vi.fn<FillTransport>(async function* () {
+        yield { type: "start", fillId: "check", targetFieldIds: [] };
+        await gate;
+        yield {
+          type: "done",
+          fillId: "check",
+          counts: { proposals: 0, flags: 0, questions: 0 },
+        };
+      });
+      const onSubmit = vi.fn();
+      const { result } = renderHook(() =>
+        useAIForm({
+          form: jobApplicationForm,
+          transport,
+          initialValues: completeValues,
+          onSubmit,
+          autoFillOnSource: false,
+        }),
+      );
+      let pending: Promise<void>;
+      act(() => {
+        pending = result.current.submit.request();
+      });
+      expect(result.current.submit.checking).toBe(true);
+      await act(async () => {
+        await result.current.submit.request();
+        if (change === "values")
+          result.current.field("fullName").setValue("Changed name");
+        if (change === "sources")
+          result.current.sources.addText("New evidence");
+        release();
+        await pending;
+      });
+      expect(transport).toHaveBeenCalledOnce();
+      expect(result.current.submit.checking).toBe(false);
+      expect(onSubmit).toHaveBeenCalledTimes(change === "unchanged" ? 1 : 0);
+      if (change !== "unchanged")
+        expect(result.current.state.submit.error).toContain(
+          "changed during checking",
+        );
+    },
+  );
+
+  it("blocks new questions even with the allow-on-error policy", async () => {
+    const onSubmit = vi.fn();
+    const transport: FillTransport = async function* () {
+      yield { type: "start", fillId: "check", targetFieldIds: [] };
+      yield {
+        type: "question",
+        question: {
+          id: "q",
+          fillId: "check",
+          fieldId: "fullName",
+          text: "Which name?",
+          options: [],
+          allowFreeText: true,
+        },
+      };
+      yield {
+        type: "error",
+        fillId: "check",
+        message: "Network unavailable",
+        retryable: true,
+      };
+    };
+    const { result } = renderHook(() =>
+      useAIForm({
+        form: jobApplicationForm,
+        transport,
+        initialValues: completeValues,
+        onSubmit,
+        checkFailurePolicy: "allow",
+      }),
+    );
+    await act(async () => result.current.submit.request());
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(result.current.submit.blockers).toContainEqual({
+      reason: "unanswered",
+      fieldId: "fullName",
+    });
+  });
+
   it("blocks on a new error flag until it is acknowledged", async () => {
     let checks = 0;
     const onSubmit = vi.fn();
@@ -591,36 +728,42 @@ describe("useAIForm checks before submit", () => {
     expect(result.current.state.flags[0]?.severity).toBe("warning");
   });
 
-  it("fails open when the pre-submit check errors", async () => {
-    const onSubmit = vi.fn();
-    const transport: FillTransport = async function* () {
-      yield { type: "start", fillId: "check-error", targetFieldIds: [] };
-      yield {
-        type: "error",
-        fillId: "check-error",
-        message: "network unavailable",
-        retryable: true,
+  it.each(["block", "allow"] as const)(
+    "handles check errors with %s policy",
+    async (policy) => {
+      const onSubmit = vi.fn();
+      const transport: FillTransport = async function* () {
+        yield { type: "start", fillId: "check-error", targetFieldIds: [] };
+        yield {
+          type: "error",
+          fillId: "check-error",
+          message: "network unavailable",
+          retryable: true,
+        };
       };
-    };
-    const { result } = renderHook(() =>
-      useAIForm({
-        form: jobApplicationForm,
-        transport,
-        autoFillOnSource: false,
-        initialValues: completeValues,
-        onSubmit,
-      }),
-    );
+      const { result } = renderHook(() =>
+        useAIForm({
+          form: jobApplicationForm,
+          transport,
+          autoFillOnSource: false,
+          initialValues: completeValues,
+          ...(policy === "allow" ? { checkFailurePolicy: policy } : {}),
+          onSubmit,
+        }),
+      );
 
-    await act(async () => result.current.submit.request());
+      await act(async () => result.current.submit.request());
 
-    expect(onSubmit).toHaveBeenCalledOnce();
-    expect(result.current.submit.status).toBe("submitted");
-    expect(result.current.check).toMatchObject({
-      status: "error",
-      error: "network unavailable",
-    });
-  });
+      expect(onSubmit).toHaveBeenCalledTimes(policy === "allow" ? 1 : 0);
+      expect(result.current.submit.status).toBe(
+        policy === "allow" ? "submitted" : "failed",
+      );
+      expect(result.current.check).toMatchObject({
+        status: "error",
+        error: "network unavailable",
+      });
+    },
+  );
 });
 
 describe("useAIForm sources", () => {

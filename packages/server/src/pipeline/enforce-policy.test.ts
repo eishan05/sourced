@@ -1,3 +1,4 @@
+import type { FieldValue, SerializedFieldDefinition } from "@sourced/core";
 import { describe, expect, it } from "vitest";
 
 import { enforcePolicy } from "./enforce-policy";
@@ -12,6 +13,96 @@ const span = {
 };
 
 describe("enforcePolicy", () => {
+  const choices = [
+    { value: "go", label: "Go" },
+    { value: "node-js", label: "Node.js" },
+  ];
+  it.each<[SerializedFieldDefinition["type"], FieldValue, string, boolean]>([
+    ["number", 99, "Age: 25", false],
+    ["number", 99, "25", false],
+    ["number", 25, "25", true],
+    ["number", 1234.5, "$1,234.50", true],
+    ["number", -0.5, "-.5", true],
+    ["number", 25, "25 to 99", false],
+    ["number", 25, "125", false],
+    ["number", 9, "Nine years", false],
+    ["date", "2021-03-01", "Mar 2021", true],
+    ["date", "2026-08-20", "Aug 20", true],
+    ["date", "2026-09-02", "yesterday", true],
+    ["date", "2021-04-01", "Mar 2021", false],
+    ["date", "2021-03-01", "Started Mar 2021", false],
+    ["date", "2021-03-01", "Mar 2021 to Apr 2022", false],
+    ["boolean", true, "YES", true],
+    ["boolean", false, "no", true],
+    ["boolean", true, "no", false],
+    ["boolean", true, "Present", false],
+    ["boolean", true, "not true", false],
+    ["select", "node-js", "Node.js", true],
+    ["select", "go", "Django", false],
+    ["select", "go", "No Go experience", false],
+    ["multiselect", ["go", "node-js"], "Go; Node.js", true],
+    ["multiselect", ["go"], "Go, Node.js", true],
+    ["multiselect", ["go", "node-js"], "Go", false],
+    ["multiselect", ["go"], "Django", false],
+    ["multiselect", ["go"], "No Go experience", false],
+  ])(
+    "checks %s value %j against %j (supported: %s)",
+    (type, value, quote, supported) => {
+      const field: SerializedFieldDefinition = {
+        id: "checked",
+        label: "Checked",
+        type,
+        options: choices,
+      };
+      for (const policy of ["infer", "extract"] as const) {
+        const result = enforcePolicy(
+          {
+            kind: "proposal",
+            fieldId: field.id,
+            basis: "extracted",
+            raw: String(value),
+            value,
+            span: { ...span, quote },
+          },
+          makeContext({
+            fieldsById: new Map([[field.id, { ...field, policy }]]),
+          }),
+        );
+        expect(result).toMatchObject({
+          ok: true,
+          value: supported
+            ? { kind: "proposal", basis: "extracted" }
+            : policy === "infer"
+              ? { kind: "proposal", basis: "inferred" }
+              : { kind: "question" },
+        });
+      }
+    },
+  );
+
+  it("shows normalization derived from the actual date evidence", () => {
+    expect(
+      enforcePolicy(
+        {
+          kind: "proposal",
+          fieldId: "start",
+          basis: "extracted",
+          raw: "2021-03-01",
+          value: "2021-03-01",
+          span: { ...span, quote: "Mar 2021" },
+        },
+        makeContext(),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: {
+        normalization: {
+          raw: "Mar 2021",
+          explanation: "Read 'Mar 2021' as 2021-03-01",
+        },
+      },
+    });
+  });
   it("downgrades an unlocatable extracted proposal", () => {
     const result = enforcePolicy(
       {

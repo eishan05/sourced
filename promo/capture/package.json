@@ -1,0 +1,11 @@
+{
+  "name": "sourced-promo-capture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.62.1"
+  }
+}

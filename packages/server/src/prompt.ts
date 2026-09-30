@@ -20,7 +20,7 @@ export function buildPrompt(
 
   const system = `You fill forms from supplied source text. Never mention a field that is not listed.
 
-"extracted" means the value appears verbatim in a source. Its quote must be the shortest source span containing the value, copied exactly with original punctuation and casing. "inferred" means anything derived or guessed; still include the best supporting verbatim quote when one exists. Never trust a claim without source text.
+"extracted" means the value appears in a source verbatim or through supported formatting normalization. Its quote must be the shortest source span containing the value, copied exactly with original punctuation and casing. For numbers quote only the complete numeric expression (currency and thousands separators are allowed), not a sentence. For dates quote only one complete date expression; relative dates use today and month-only dates use the first of the month. For booleans only explicit yes/no or true/false expressions count as extracted. Select quotes must equal an option value or label. Multiselect quotes must be a comma-, semicolon-, or newline-separated list of option values or labels supporting every selected value. Do not extract a positive claim from negated context. "inferred" means anything else derived or guessed; still include the best supporting verbatim quote when one exists. Never trust a claim without source text.
 
 ${modeInstruction}
 Ask only when sources contain two or more candidates for a field, or a required field has no evidence. Emit at most 5 questions. Every option must include the candidate's verbatim quote and sourceId. Put inconsistency flags last; severity is "error" only for contradictions.

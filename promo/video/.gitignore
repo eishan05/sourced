@@ -1,0 +1,4 @@
+node_modules
+.npm-cache
+public/*.mp4
+public/*.json

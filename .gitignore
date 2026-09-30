@@ -10,3 +10,10 @@ apps/playground/e2e/__screenshots__/
 
 # playwright-cli scratch output
 .playwright-cli/
+
+# promo video: capture output, renders, and copied assets
+promo/assets/*.mp4
+promo/assets/frames/
+promo/assets/stills/
+promo/out/
+promo/video/public/demo.*

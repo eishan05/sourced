@@ -27,6 +27,7 @@
     "dev": "tsdown --watch",
     "eval:fill": "node --env-file-if-exists=../../apps/playground/.env.local --import tsx scripts/eval-fill.ts",
     "test": "vitest run",
+    "test:live": "SOURCED_LIVE_TESTS=1 vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "biome check ."
   },

@@ -106,6 +106,7 @@ it.skipIf(!process.env.OPENROUTER_API_KEY)(
     }
     const expected = thresholds[model] ?? { coverage: 0.7, extractedRate: 0.7 };
     expect(coverage).toBeGreaterThanOrEqual(expected.coverage);
+    expect(wrongValues).toBe(0);
     expect(extractedRate).toBeGreaterThanOrEqual(expected.extractedRate);
   },
   120_000,

@@ -10,5 +10,6 @@ export * from "./ndjson";
 export * from "./pipeline";
 export * from "./prompt";
 export * from "./schema";
+export * from "./submission";
 
 export const SERVER_VERSION = "0.0.0";

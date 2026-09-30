@@ -194,6 +194,89 @@ describe("fill", () => {
     expect((await iterator.next()).value?.type).toBe("done");
   });
 
+  it("reports an error when a check times out", async () => {
+    const events = await collect(
+      fill(
+        { ...request(), mode: "check" },
+        {
+          adapter: createFakeAdapter([{ delayMs: 100 }]),
+          firstItemTimeoutMs: 5,
+        },
+      ),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "error",
+      retryable: true,
+      message: expect.stringContaining("timed out"),
+    });
+    expect(events.some((event) => event.type === "done")).toBe(false);
+  });
+
+  it.each([
+    {
+      fieldId: "yearsExperience",
+      value: "9",
+      quote: "9",
+      text: "Experience: 19",
+    },
+    {
+      fieldId: "yearsExperience",
+      value: "9",
+      quote: "9",
+      text: "Experience: -9",
+    },
+    { fieldId: "skills", values: ["go"], quote: "go", text: "Django" },
+    {
+      fieldId: "currentlyEmployed",
+      value: "true",
+      quote: "y",
+      text: "yesterday",
+    },
+  ])(
+    "does not extract partial tokens for $fieldId",
+    async ({ text, ...item }) => {
+      const source = createSource({
+        id: "boundary",
+        name: "Boundary",
+        kind: "paste",
+        text,
+      });
+      const events = await collect(
+        fill(
+          { ...request(), sources: [source] },
+          {
+            adapter: createFakeAdapter([
+              {
+                kind: "proposal",
+                basis: "extracted",
+                sourceId: source.id,
+                ...item,
+              },
+            ]),
+          },
+        ),
+      );
+      expect(
+        events.some(
+          (event) =>
+            event.type === "proposal" && event.proposal.kind === "extracted",
+        ),
+      ).toBe(false);
+      expect(
+        events.some(
+          (event) => event.type === "question" || event.type === "proposal",
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it("completes a normally empty check", async () => {
+    const events = await collect(
+      fill({ ...request(), mode: "check" }, { adapter: createFakeAdapter([]) }),
+    );
+    expect(events.at(-1)).toMatchObject({ type: "done" });
+  });
+
   it("drops a malformed item without ending the stream", async () => {
     const events = await collect(
       fill(request(), {

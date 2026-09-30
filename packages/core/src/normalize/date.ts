@@ -1,4 +1,4 @@
-import { parseDate } from "chrono-node";
+import { parse, parseDate } from "chrono-node";
 
 export interface NormalizedDate {
   value: string;
@@ -71,7 +71,7 @@ function explained(raw: string, value: string): NormalizedDate {
 
 export function normalizeDate(
   raw: string,
-  opts: { today: string },
+  opts: { today: string; fullMatch?: boolean },
 ): NormalizedDate | null {
   const input = raw.trim();
   const reference = parseReference(opts.today);
@@ -120,6 +120,16 @@ export function normalizeDate(
     );
   }
 
-  const parsed = parseDate(input, reference, { forwardDate: false });
+  const results = parse(input, reference, { forwardDate: false });
+  if (
+    opts.fullMatch &&
+    (results.length !== 1 ||
+      results[0]?.end != null ||
+      results[0]?.index !== 0 ||
+      results[0]?.text !== input)
+  ) {
+    return null;
+  }
+  const parsed = results[0]?.start.date();
   return parsed ? explained(input, formatDate(parsed)) : null;
 }

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "fps": 30,
+  "width": 2880,
+  "height": 1620,
+  "video": "demo.mp4",
+  "durationMs": 40900,
+  "capturedAt": "2026-09-04T11:02:15.838Z",
+  "marks": {
+    "start": 0,
+    "paste": 2783,
+    "fillStart": 3983,
+    "firstField": 7300,
+    "fillDone": 15165,
+    "chipClick": 17238,
+    "highlightSettled": 19668,
+    "ghostFocus": 21865,
+    "ghostAccept": 23982,
+    "gateAnswer": 26949,
+    "reviewStart": 29882,
+    "reviewKeys": 29932,
+    "reviewDone": 33315,
+    "humanAnswer": 36234,
+    "submitReady": 37231,
+    "submitClick": 38415,
+    "submitted": 40781,
+    "end": 40798
+  },
+  "regions": {
+    "formPane": {
+      "x": 993,
+      "y": 151,
+      "w": 1887,
+      "h": 1469
+    },
+    "sourcePane": {
+      "x": 0,
+      "y": 151,
+      "w": 1042,
+      "h": 1469
+    },
+    "chipRow": {
+      "x": 1161,
+      "y": 708,
+      "w": 1576,
+      "h": 377
+    },
+    "sourceHighlight": {
+      "x": 48,
+      "y": 769,
+      "w": 530,
+      "h": 83
+    },
+    "ghostCard": {
+      "x": 1192,
+      "y": 703,
+      "w": 1515,
+      "h": 215
+    },
+    "gateSection": {
+      "x": 1188,
+      "y": 983,
+      "w": 1521,
+      "h": 637
+    },
+    "reviewBar": {
+      "x": 1188,
+      "y": 104,
+      "w": 1521,
+      "h": 143
+    },
+    "humanFields": {
+      "x": 1188,
+      "y": 426,
+      "w": 1521,
+      "h": 789
+    },
+    "submitSummary": {
+      "x": 1188,
+      "y": 1252,
+      "w": 1521,
+      "h": 264
+    },
+    "submittedJson": {
+      "x": 1188,
+      "y": 695,
+      "w": 1521,
+      "h": 821
+    }
+  },
+  "stats": {
+    "filledFields": 12,
+    "suggestions": 2,
+    "frames": 1227,
+    "takes": 1
+  }
+}

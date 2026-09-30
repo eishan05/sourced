@@ -1,0 +1,29 @@
+{
+  "name": "sourced-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prepare-assets": "node scripts/prepare-assets.mjs",
+    "studio": "node scripts/prepare-assets.mjs && remotion studio",
+    "check:captions": "tsx scripts/check-caption-durations.ts",
+    "check:framing": "tsx scripts/check-framing.ts",
+    "test:timeline-shift": "tsx scripts/check-timeline-shift.ts",
+    "stills": "tsx scripts/extract-stills.ts",
+    "render": "node scripts/prepare-assets.mjs && npm run check:captions && npm run check:framing && npm run test:timeline-shift && remotion render Promo ../out/sourced-promo-video-only.mp4 --codec h264 --crf 18 && node scripts/mux-silent-audio.mjs && npm run stills"
+  },
+  "dependencies": {
+    "@remotion/google-fonts": "4.0.520",
+    "@remotion/renderer": "4.0.520",
+    "@remotion/cli": "4.0.520",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.520"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "tsx": "4.20.5",
+    "typescript": "5.7.3"
+  }
+}

@@ -88,11 +88,17 @@ export function SubmitSummary({
       ) : null}
       <div data-submit-actions>
         <button
-          disabled={api.submit.blockers.length > 0 || submitting}
+          disabled={
+            api.submit.blockers.length > 0 || submitting || api.submit.checking
+          }
           onClick={() => void (onSubmit ? onSubmit() : api.submit.request())}
           type="button"
         >
-          {submitting ? "Submitting…" : "Submit"}
+          {api.submit.checking
+            ? "Checking…"
+            : submitting
+              ? "Submitting…"
+              : "Submit"}
         </button>
         <button
           onClick={() => {
@@ -109,7 +115,12 @@ export function SubmitSummary({
           Clear everything the AI filled
         </button>
       </div>
-      {api.state.submit.error ? <p>{api.state.submit.error}</p> : null}
+      {api.state.submit.error ? (
+        <p role="alert">{api.state.submit.error}</p>
+      ) : null}
+      {api.check.error ? (
+        <p role="status">AI check did not complete: {api.check.error}</p>
+      ) : null}
     </section>
   );
 }

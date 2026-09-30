@@ -1,7 +1,11 @@
 import {
   type FieldValue,
+  normalizeBoolean,
+  normalizeDate,
+  normalizeNumber,
   normalizeTextForQuoteLocation,
   policyOf,
+  type SerializedFieldDefinition,
 } from "@sourced/core";
 
 import type {
@@ -26,10 +30,12 @@ function isEmpty(value: FieldValue): boolean {
 }
 
 function extractedValueMatchesQuote(
-  fieldType: string,
+  field: SerializedFieldDefinition,
   value: FieldValue,
   quote: string,
+  today: string,
 ): boolean {
+  const fieldType = field.type;
   if (fieldType === "phone") {
     const valueDigits = String(value).replace(/\D/g, "");
     const quoteDigits = quote.replace(/\D/g, "");
@@ -43,7 +49,35 @@ function extractedValueMatchesQuote(
     const normalizedQuote = normalizeTextForQuoteLocation(quote).text;
     return normalizedQuote.includes(normalizedValue);
   }
-  return true;
+  const input = quote.trim();
+  if (fieldType === "number") {
+    const numeric =
+      /^[\p{Sc}\s]*[+-]?(?:(?:\d{1,3}(?:[,\u00a0\u202f ]\d{3})+|\d+)(?:\.\d+)?|\.\d+)[\p{Sc}\s]*$/u;
+    return numeric.test(input) && normalizeNumber(input)?.value === value;
+  }
+  if (fieldType === "date") {
+    return normalizeDate(input, { today, fullMatch: true })?.value === value;
+  }
+  if (fieldType === "boolean") {
+    return normalizeBoolean(input) === value;
+  }
+  const optionValue = (text: string): string | undefined => {
+    const normalized = text.trim().toLowerCase();
+    return field.options?.find(
+      (option) =>
+        option.value.toLowerCase() === normalized ||
+        option.label.toLowerCase() === normalized,
+    )?.value;
+  };
+  if (fieldType === "select") return optionValue(input) === value;
+  if (fieldType === "multiselect" && Array.isArray(value)) {
+    const supported = input.split(/[,;\n]+/).map(optionValue);
+    return (
+      supported.every((option) => option !== undefined) &&
+      value.every((option) => supported.includes(option))
+    );
+  }
+  return false;
 }
 
 function evidenceFor(item: LocatedItem & { kind: "proposal" }) {
@@ -77,7 +111,12 @@ export function enforcePolicy(
   } else if (
     basis === "extracted" &&
     item.span &&
-    !extractedValueMatchesQuote(field.type, item.value, item.span.quote)
+    !extractedValueMatchesQuote(
+      field,
+      item.value,
+      item.span.quote,
+      context.today,
+    )
   ) {
     basis = "inferred";
   }
@@ -151,6 +190,13 @@ export function enforcePolicy(
     };
   }
 
+  const normalizedDate =
+    basis === "extracted" && field.type === "date" && item.span
+      ? normalizeDate(item.span.quote, {
+          today: context.today,
+          fullMatch: true,
+        })
+      : null;
   return {
     ok: true,
     value: {
@@ -161,7 +207,10 @@ export function enforcePolicy(
       span: item.span,
       quote: item.quote,
       rationale: item.rationale,
-      normalization: item.normalization,
+      normalization:
+        normalizedDate?.explanation && item.span
+          ? { raw: item.span.quote, explanation: normalizedDate.explanation }
+          : item.normalization,
     },
   };
 }
